@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowDown, MapPin, Download, ArrowUpRight } from "lucide-react";
 import abdelrhmanPhoto from "@/assets/abdelrhman.jpg";
+import { useState, useEffect } from "react";
 
 const skills = ["React.js", "Next.js", "TypeScript", "UX Design", "SQL"];
 
@@ -11,6 +12,20 @@ const stats = [
 ];
 
 const HeroSection = () => {
+  const [cvUrl, setCvUrl] = useState("/cv.pdf");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("cv_metadata");
+    if (saved) {
+      try {
+        const { url } = JSON.parse(saved);
+        if (url) setCvUrl(url);
+      } catch (e) {
+        console.error("Failed to parse CV metadata");
+      }
+    }
+  }, []);
+
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden pt-24 pb-16">
       <div className="container relative z-10 px-6">
@@ -73,7 +88,7 @@ const HeroSection = () => {
                 <ArrowUpRight className="w-4 h-4 transition-transform duration-300 group-hover:rotate-45" />
               </a>
               <a
-                href="/cv.pdf"
+                href={cvUrl}
                 download
                 className="group inline-flex items-center gap-2 px-6 py-3 rounded-full border border-border bg-transparent text-foreground text-sm font-medium transition-all duration-300 hover:bg-accent hover:text-accent-foreground hover:border-accent hover:-translate-y-0.5"
               >
@@ -113,17 +128,17 @@ const HeroSection = () => {
               className="relative group cursor-pointer"
             >
               {/* Pulsing accent ring on hover */}
-              <div className="absolute -inset-2 rounded-[36px] border border-accent/0 group-hover:border-accent/40 transition-all duration-500 group-hover:scale-[1.02]" />
+              <div className="absolute -inset-2 rounded-[50%] border border-accent/0 group-hover:border-accent/40 transition-all duration-500 group-hover:scale-105" />
               {/* Stronger soft glow on hover */}
-              <div className="absolute -inset-6 rounded-[40px] bg-accent/0 group-hover:bg-accent/20 blur-3xl transition-all duration-700" />
-              {/* Rotating dashed ring - changed to a static decorative border for better rectangular fit */}
-              <div className="absolute -inset-3 rounded-[38px] border border-dashed border-accent/0 group-hover:border-accent/30 transition-all duration-700" />
+              <div className="absolute -inset-6 rounded-full bg-accent/0 group-hover:bg-accent/30 blur-3xl transition-all duration-700" />
+              {/* Rotating dashed ring */}
+              <div className="absolute -inset-3 rounded-[50%] border border-dashed border-accent/0 group-hover:border-accent/50 transition-all duration-700 group-hover:[animation:spin_8s_linear_infinite]" />
 
-              <div className="relative w-full aspect-[4/5] max-w-[400px] lg:max-w-[450px] rounded-[32px] border border-border/60 bg-card/40 backdrop-blur-sm overflow-hidden transition-all duration-500 group-hover:border-accent group-hover:shadow-glow">
+              <div className="relative w-[320px] h-[320px] sm:w-[400px] sm:h-[400px] lg:w-[450px] lg:h-[450px] rounded-full border border-border/60 bg-card/40 backdrop-blur-sm overflow-hidden transition-all duration-500 group-hover:border-accent group-hover:shadow-glow">
                 <img
                   src={abdelrhmanPhoto}
                   alt="Abdelrhman Shihab"
-                  className="w-full h-full object-cover scale-[1.3] transition-transform duration-700 group-hover:scale-[1.4]"
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
                 {/* Subtle color overlay on hover */}
                 <div className="absolute inset-0 bg-accent/0 group-hover:bg-accent/10 mix-blend-overlay transition-all duration-500" />
@@ -134,7 +149,7 @@ const HeroSection = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7, duration: 0.6 }}
-              className="flex flex-wrap gap-2 mt-6 justify-center lg:justify-end max-w-[340px]"
+              className="flex flex-wrap gap-2 mt-6 justify-center lg:justify-end max-w-[450px]"
             >
               {skills.map((skill) => (
                 <span

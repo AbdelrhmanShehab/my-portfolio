@@ -1,14 +1,19 @@
 import { useState, useRef, ChangeEvent } from "react";
 import { motion } from "framer-motion";
 import { Plus, Edit, Trash2, Eye, Upload, X } from "lucide-react";
-import { projects, type Project } from "@/data/projects";
+import { projects, type Project, getProjectList, saveProject, deleteProject } from "@/data/projects";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 const AdminDashboard = () => {
-  const [projectList, setProjectList] = useState<Project[]>(projects);
+  const [projectList, setProjectList] = useState<Project[]>(() => getProjectList());
   const [showForm, setShowForm] = useState(false);
+  const [cvFile, setCvFile] = useState<{ name: string; url: string } | null>(() => {
+    const saved = localStorage.getItem("cv_metadata");
+    return saved ? JSON.parse(saved) : null;
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cvInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -71,8 +76,7 @@ const AdminDashboard = () => {
       featured: false
     };
 
-    setProjectList(prev => [newProject, ...prev]);
-    setShowForm(false);
+    saveProject(newProject);
     setFormData({
       title: "",
       description: "",
@@ -86,11 +90,39 @@ const AdminDashboard = () => {
       thumbnail: ""
     });
     toast.success("Project added successfully!");
-  };
 
   const handleDelete = (id: string) => {
-    setProjectList(prev => prev.filter(p => p.id !== id));
+    deleteProject(id);
+    setProjectList(getProjectList());
     toast.success("Project deleted");
+  };
+
+  const handleCvUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type !== "application/pdf") {
+        toast.error("Please upload a PDF file");
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("File size must be less than 10MB");
+        return;
+      }
+
+      // In a real app, you'd upload to a server. 
+      const mockUrl = URL.createObjectURL(file);
+      const metadata = { name: file.name, url: mockUrl };
+      setCvFile(metadata);
+      localStorage.setItem("cv_metadata", JSON.stringify(metadata));
+      toast.success("CV uploaded successfully!");
+    }
+  };
+
+  const removeCv = () => {
+    setCvFile(null);
+    localStorage.removeItem("cv_metadata");
+    if (cvInputRef.current) cvInputRef.current.value = "";
+    toast.success("CV removed");
   };
 
   return (
@@ -121,6 +153,57 @@ const AdminDashboard = () => {
           >
             <Plus className="w-4 h-4" /> Add Project
           </button>
+        </div>
+
+        {/* CV Management Section */}
+        <div className="bg-gradient-card rounded-xl border border-border p-6 mb-12">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-xl font-display font-bold">CV Management</h3>
+              <p className="text-muted-foreground text-sm">Update your resume for the home page</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <input
+                type="file"
+                ref={cvInputRef}
+                onChange={handleCvUpload}
+                accept=".pdf"
+                className="hidden"
+              />
+              {cvFile ? (
+                <div className="flex items-center gap-3 bg-secondary/50 px-4 py-2 rounded-lg border border-border">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium truncate max-w-[150px]">{cvFile.name}</span>
+                    <span className="text-[10px] text-muted-foreground uppercase">Current CV</span>
+                  </div>
+                  <button 
+                    onClick={removeCv}
+                    className="p-1.5 hover:bg-destructive/10 hover:text-destructive rounded-md transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => cvInputRef.current?.click()}
+                  className="inline-flex items-center gap-2 bg-secondary text-secondary-foreground font-medium px-4 py-2 rounded-lg hover:bg-secondary/80 transition-colors"
+                >
+                  <Upload className="w-4 h-4" /> Upload PDF
+                </button>
+              )}
+            </div>
+          </div>
+          
+          {!cvFile && (
+            <div 
+              onClick={() => cvInputRef.current?.click()}
+              className="border-2 border-dashed border-border rounded-lg p-10 text-center text-muted-foreground hover:border-primary/30 hover:bg-primary/5 transition-all cursor-pointer"
+            >
+              <Upload className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p className="text-base font-medium">Click to upload your latest resume</p>
+              <p className="text-sm mt-1 opacity-70">Supported format: PDF (Max 10MB)</p>
+            </div>
+          )}
         </div>
 
         {showForm && (

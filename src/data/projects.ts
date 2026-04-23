@@ -20,6 +20,7 @@ export interface Project {
 }
 
 export const projects: Project[] = [
+  // ... (static projects)
   {
     id: "luxe-commerce",
     title: "Luxe Commerce",
@@ -63,16 +64,38 @@ export const projects: Project[] = [
   },
 ];
 
+const LOCAL_STORAGE_KEY = "portfolio_custom_projects";
+
+export function getProjectList(): Project[] {
+  const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+  const customProjects: Project[] = saved ? JSON.parse(saved) : [];
+  return [...customProjects, ...projects];
+}
+
+export function saveProject(project: Project) {
+  const current = getProjectList().filter(p => !projects.find(sp => sp.id === p.id)); // only custom ones
+  const updated = [project, ...current.filter(p => p.id !== project.id)];
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
+}
+
+export function deleteProject(id: string) {
+  const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+  if (!saved) return;
+  const customProjects: Project[] = JSON.parse(saved);
+  const updated = customProjects.filter(p => p.id !== id);
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
+}
+
 export function getProject(id: string): Project | undefined {
-  return projects.find((p) => p.id === id);
+  return getProjectList().find((p) => p.id === id);
 }
 
 export function getProjectsByTag(tag: string): Project[] {
-  return projects.filter((p) => p.tags.includes(tag));
+  return getProjectList().filter((p) => p.tags.includes(tag));
 }
 
 export function getAllTags(): string[] {
   const tags = new Set<string>();
-  projects.forEach((p) => p.tags.forEach((t) => tags.add(t)));
+  getProjectList().forEach((p) => p.tags.forEach((t) => tags.add(t)));
   return Array.from(tags);
 }

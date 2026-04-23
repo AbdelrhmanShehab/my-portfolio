@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import ProjectCard from "./ProjectCard";
-import { projects, getAllTags } from "@/data/projects";
+import { projects, getAllTags, getProjectList } from "@/data/projects";
 
 const ProjectsSection = () => {
   const allTags = getAllTags();
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const projectList = getProjectList();
 
   const filtered = activeTag
-    ? projects.filter((p) => p.tags.includes(activeTag))
-    : projects;
+    ? projectList.filter((p) => p.tags.includes(activeTag))
+    : projectList;
 
   return (
     <section id="projects" className="py-24 sm:py-32 relative">
