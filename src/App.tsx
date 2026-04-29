@@ -7,14 +7,17 @@ import Index from "./pages/Index";
 import ProjectDetail from "./pages/ProjectDetail";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
+// import CustomCursor from "./components/CustomCursor";
 
 const queryClient = new QueryClient();
 
 const App = () => (
+
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      {/* <CustomCursor /> */}
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />

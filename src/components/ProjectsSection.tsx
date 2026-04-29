@@ -1,15 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import ProjectCard from "./ProjectCard";
-import { projects, getAllTags, getProjectList } from "@/data/projects";
+import { projects, getAllTools, getProjectList, type Project } from "@/data/projects";
 
 const ProjectsSection = () => {
-  const allTags = getAllTags();
-  const [activeTag, setActiveTag] = useState<string | null>(null);
-  const projectList = getProjectList();
+  const [allTools, setAllTools] = useState<string[]>([]);
+  const [activeTool, setActiveTool] = useState<string | null>(null);
+  const [projectList, setProjectList] = useState<Project[]>([]);
 
-  const filtered = activeTag
-    ? projectList.filter((p) => p.tags.includes(activeTag))
+  useEffect(() => {
+    const fetchData = async () => {
+      const [list, tools] = await Promise.all([getProjectList(), getAllTools()]);
+      setProjectList(list);
+      setAllTools(tools);
+    };
+    fetchData();
+  }, []);
+
+  const filtered = activeTool
+    ? projectList.filter((p) => p.tools.includes(activeTool))
     : projectList;
 
   return (
@@ -29,7 +38,7 @@ const ProjectsSection = () => {
           </h2>
         </motion.div>
 
-        {/* Tag Filter */}
+        {/* Tool Filter */}
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
@@ -37,31 +46,31 @@ const ProjectsSection = () => {
           className="flex flex-wrap justify-center gap-2 mb-16"
         >
           <button
-            onClick={() => setActiveTag(null)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 border ${
-              activeTag === null
-                ? "bg-foreground text-background border-foreground"
-                : "bg-transparent text-muted-foreground border-border hover:text-foreground hover:border-foreground/40"
+            onClick={() => setActiveTool(null)}
+            className={`px-6 py-2.5 rounded-full text-[13px] font-bold tracking-wide transition-all duration-300 border ${
+              activeTool === null
+                ? "bg-accent text-accent-foreground border-accent shadow-glow-sm scale-105"
+                : "bg-[#1A1C23] text-muted-foreground border-white/5 hover:border-accent/40 hover:text-accent hover:bg-accent/5"
             }`}
           >
             All
           </button>
-          {allTags.map((tag) => (
+          {allTools.map((tool) => (
             <button
-              key={tag}
-              onClick={() => setActiveTag(tag)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 border ${
-                activeTag === tag
-                  ? "bg-foreground text-background border-foreground"
-                  : "bg-transparent text-muted-foreground border-border hover:text-foreground hover:border-foreground/40"
+              key={tool}
+              onClick={() => setActiveTool(tool)}
+              className={`px-6 py-2.5 rounded-full text-[13px] font-bold tracking-wide transition-all duration-300 border ${
+                activeTool === tool
+                  ? "bg-accent text-accent-foreground border-accent shadow-glow-sm scale-105"
+                  : "bg-[#1A1C23] text-muted-foreground border-white/5 hover:border-accent/40 hover:text-accent hover:bg-accent/5"
               }`}
             >
-              {tag}
+              {tool}
             </button>
           ))}
         </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-12">
           {filtered.map((project, i) => (
             <ProjectCard key={project.id} project={project} index={i} />
           ))}

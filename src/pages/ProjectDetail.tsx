@@ -5,9 +5,31 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { getProject } from "@/data/projects";
 
+import { useState, useEffect } from "react";
+import type { Project } from "@/data/projects";
+
 const ProjectDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const project = getProject(id || "");
+  const [project, setProject] = useState<Project | null | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProject = async () => {
+      setLoading(true);
+      const data = await getProject(id || "");
+      setProject(data);
+      setLoading(false);
+    };
+    fetchProject();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   if (!project) {
     return (
@@ -45,18 +67,32 @@ const ProjectDetail = () => {
             className="mb-12"
           >
             <div className="flex flex-wrap gap-2 mb-4">
-              {project.tags.map((tag) => (
-                <span key={tag} className="text-xs font-medium px-3 py-1 rounded-full bg-primary/10 text-primary">
-                  {tag}
+              {project.tools.slice(0, 3).map((tool) => (
+                <span key={tool} className="text-xs font-medium px-3 py-1 rounded-full bg-primary/10 text-primary">
+                  {tool}
                 </span>
               ))}
             </div>
             <h1 className="text-4xl sm:text-6xl font-display font-bold tracking-tight mb-4">
               {project.title}
             </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl leading-relaxed">
+            <p className="text-xl text-muted-foreground max-w-2xl leading-relaxed mb-8">
               {project.description}
             </p>
+
+            {project.liveUrl && (
+              <motion.a
+                href={project.liveUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                className="inline-flex items-center gap-3 bg-accent text-accent-foreground px-8 py-4 rounded-full font-bold text-lg shadow-glow hover:shadow-glow/80 transition-all"
+              >
+                Visit Live Demo
+                <ExternalLink className="w-5 h-5" />
+              </motion.a>
+            )}
           </motion.div>
 
           {/* Hero image */}
@@ -64,14 +100,15 @@ const ProjectDetail = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="rounded-xl overflow-hidden border border-border mb-16"
+            className="rounded-2xl overflow-hidden border border-white/10 shadow-2xl mb-16 relative group"
           >
+            <div className="absolute inset-0 bg-accent/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
             <img
               src={project.thumbnail}
               alt={project.title}
               width={1200}
               height={675}
-              className="w-full h-auto object-cover"
+              className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105"
             />
           </motion.div>
 
@@ -84,8 +121,11 @@ const ProjectDetail = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
               >
-                <h2 className="text-2xl font-display font-semibold mb-4 text-primary">The Challenge</h2>
-                <p className="text-foreground/80 leading-relaxed text-lg">{project.problem}</p>
+                <h2 className="text-2xl font-display font-bold mb-4 text-foreground flex items-center gap-3">
+                  <span className="w-8 h-px bg-accent" />
+                  The Challenge
+                </h2>
+                <p className="text-muted-foreground leading-relaxed text-lg">{project.problem}</p>
               </motion.div>
 
               <motion.div
@@ -93,23 +133,33 @@ const ProjectDetail = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
               >
-                <h2 className="text-2xl font-display font-semibold mb-4 text-primary">The Solution</h2>
-                <p className="text-foreground/80 leading-relaxed text-lg">{project.solution}</p>
+                <h2 className="text-2xl font-display font-bold mb-4 text-foreground flex items-center gap-3">
+                  <span className="w-8 h-px bg-accent" />
+                  The Solution
+                </h2>
+                <p className="text-muted-foreground leading-relaxed text-lg">{project.solution}</p>
               </motion.div>
 
               {/* Gallery */}
-              {project.gallery.length > 0 && (
+              {project.gallery && project.gallery.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                 >
-                  <h2 className="text-2xl font-display font-semibold mb-6 text-primary">Gallery</h2>
-                  <div className="grid sm:grid-cols-2 gap-4">
+                  <h2 className="text-2xl font-display font-bold mb-6 text-foreground flex items-center gap-3">
+                    <span className="w-8 h-px bg-accent" />
+                    Gallery
+                  </h2>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {project.gallery.map((img, i) => (
-                      <div key={i} className="rounded-lg overflow-hidden border border-border">
-                        <img src={img} alt={`${project.title} screenshot ${i + 1}`} loading="lazy" className="w-full h-auto" />
-                      </div>
+                      <motion.div 
+                        key={i} 
+                        whileHover={{ y: -5 }}
+                        className="rounded-xl overflow-hidden border border-white/5 shadow-lg bg-card/50 backdrop-blur-sm"
+                      >
+                        <img src={img} alt={`${project.title} screenshot ${i + 1}`} loading="lazy" className="w-full h-auto object-cover aspect-video" />
+                      </motion.div>
                     ))}
                   </div>
                 </motion.div>
@@ -124,38 +174,67 @@ const ProjectDetail = () => {
               className="space-y-8"
             >
               {/* Tools */}
-              <div className="bg-gradient-card rounded-xl border border-border p-6">
-                <h3 className="font-display font-semibold text-sm uppercase tracking-widest text-muted-foreground mb-4">Tools Used</h3>
+              <div className="bg-card/30 backdrop-blur-md rounded-2xl border border-white/10 p-8 shadow-xl">
+                <h3 className="font-display font-bold text-xs uppercase tracking-[0.2em] text-muted-foreground mb-6">Tech Stack</h3>
                 <div className="flex flex-wrap gap-2">
                   {project.tools.map((tool) => (
-                    <span key={tool} className="text-sm px-3 py-1.5 rounded-lg bg-secondary text-secondary-foreground">
+                    <span key={tool} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-secondary/80 text-secondary-foreground border border-white/5">
                       {tool}
                     </span>
                   ))}
                 </div>
               </div>
 
-              {/* Links */}
-              <div className="bg-gradient-card rounded-xl border border-border p-6 space-y-3">
-                <h3 className="font-display font-semibold text-sm uppercase tracking-widest text-muted-foreground mb-4">Links</h3>
-                {project.liveUrl && (
-                  <a href={project.liveUrl} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-3 text-foreground hover:text-primary transition-colors">
-                    <ExternalLink className="w-4 h-4" /> Live Demo
-                  </a>
-                )}
-                {project.githubUrl && (
-                  <a href={project.githubUrl} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-3 text-foreground hover:text-primary transition-colors">
-                    <Github className="w-4 h-4" /> GitHub Repo
-                  </a>
-                )}
-                {project.behanceUrl && (
-                  <a href={project.behanceUrl} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-3 text-foreground hover:text-primary transition-colors">
-                    <Palette className="w-4 h-4" /> Behance
-                  </a>
-                )}
+              {/* Project Links */}
+              <div className="bg-card/30 backdrop-blur-md rounded-2xl border border-white/10 p-8 shadow-xl">
+                <h3 className="font-display font-bold text-xs uppercase tracking-[0.2em] text-muted-foreground mb-6">Project Links</h3>
+                <div className="flex flex-col gap-4">
+                  {project.liveUrl && (
+                    <motion.a 
+                      href={project.liveUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      whileHover={{ x: 5 }}
+                      className="group flex items-center justify-between p-4 rounded-xl bg-accent/10 border border-accent/20 text-accent font-bold transition-all hover:bg-accent hover:text-accent-foreground"
+                    >
+                      <span className="flex items-center gap-3">
+                        <ExternalLink className="w-5 h-5" />
+                        Live Preview
+                      </span>
+                      <ArrowLeft className="w-4 h-4 rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </motion.a>
+                  )}
+                  {project.githubUrl && (
+                    <motion.a 
+                      href={project.githubUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      whileHover={{ x: 5 }}
+                      className="group flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 text-foreground font-bold transition-all hover:bg-white hover:text-background"
+                    >
+                      <span className="flex items-center gap-3">
+                        <Github className="w-5 h-5" />
+                        Source Code
+                      </span>
+                      <ArrowLeft className="w-4 h-4 rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </motion.a>
+                  )}
+                  {project.behanceUrl && (
+                    <motion.a 
+                      href={project.behanceUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      whileHover={{ x: 5 }}
+                      className="group flex items-center justify-between p-4 rounded-xl bg-[#0057ff]/10 border border-[#0057ff]/20 text-[#0057ff] font-bold transition-all hover:bg-[#0057ff] hover:text-white"
+                    >
+                      <span className="flex items-center gap-3">
+                        <Palette className="w-5 h-5" />
+                        Behance
+                      </span>
+                      <ArrowLeft className="w-4 h-4 rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </motion.a>
+                  )}
+                </div>
               </div>
             </motion.div>
           </div>
