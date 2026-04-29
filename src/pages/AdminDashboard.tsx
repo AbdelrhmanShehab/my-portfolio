@@ -1,6 +1,6 @@
 import { useState, useRef, ChangeEvent, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Plus, Edit, Trash2, Eye, Upload, X, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, Upload, X, ChevronUp, ChevronDown, Download, Code, Copy, Check } from "lucide-react";
 import { projects, type Project, getProjectList, saveProject, deleteProject, reorderProjects } from "@/data/projects";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -9,6 +9,8 @@ const AdminDashboard = () => {
   const [projectList, setProjectList] = useState<Project[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showExport, setShowExport] = useState(false);
+  const [copied, setCopied] = useState(false);
   
   useEffect(() => {
     const fetchProjects = async () => {
@@ -204,6 +206,18 @@ const AdminDashboard = () => {
     toast.success("CV removed");
   };
 
+  const getExportCode = () => {
+    const code = `export const projects: Project[] = ${JSON.stringify(projectList, null, 2)};`;
+    return code;
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(getExportCode());
+    setCopied(true);
+    toast.success("Code copied to clipboard!");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="border-b border-border bg-card">
@@ -250,7 +264,51 @@ const AdminDashboard = () => {
           >
             <Plus className="w-4 h-4" /> Add Project
           </button>
+          <button
+            onClick={() => setShowExport(!showExport)}
+            className="inline-flex items-center gap-2 bg-secondary text-secondary-foreground font-medium px-5 py-2.5 rounded-lg hover:bg-secondary/80 transition-colors"
+          >
+            <Code className="w-4 h-4" /> Export for Deployment
+          </button>
         </div>
+
+        {showExport && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-[#1A1C23] border border-accent/20 rounded-xl p-6 mb-8 overflow-hidden relative"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-xl font-display font-bold text-accent">Export Projects Data</h3>
+                <p className="text-muted-foreground text-sm">Copy this code and paste it into <code className="text-primary">src/data/projects.ts</code> to make your projects permanent.</p>
+              </div>
+              <button 
+                onClick={copyToClipboard}
+                className="flex items-center gap-2 bg-accent/10 text-accent hover:bg-accent/20 px-4 py-2 rounded-lg transition-all border border-accent/20"
+              >
+                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {copied ? "Copied!" : "Copy Code"}
+              </button>
+            </div>
+            
+            <div className="relative">
+              <pre className="bg-black/40 p-4 rounded-lg overflow-x-auto text-[13px] text-blue-300 font-mono max-h-[300px] border border-white/5">
+                {getExportCode()}
+              </pre>
+              <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#1A1C23] to-transparent pointer-events-none" />
+            </div>
+            
+            <div className="mt-6 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+              <p className="text-sm text-primary-foreground/80 leading-relaxed">
+                <strong>Why is this needed?</strong> Projects added via this dashboard are stored in your browser only. 
+                To show them on the deployed site for everyone, you must "bake" them into the source code by updating the 
+                <code className="mx-1 px-1 bg-primary/20 rounded text-primary">projects</code> array in 
+                <code className="mx-1 px-1 bg-primary/20 rounded text-primary">src/data/projects.ts</code>.
+              </p>
+            </div>
+          </motion.div>
+        )}
 
         {/* CV Management Section */}
         <div className="bg-gradient-card rounded-xl border border-border p-6 mb-12">
