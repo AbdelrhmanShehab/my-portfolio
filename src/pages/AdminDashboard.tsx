@@ -123,7 +123,12 @@ const AdminDashboard = () => {
         behanceUrl: "",
         thumbnail: ""
       });
-      toast.success(editingId ? "Project updated!" : "Project added successfully!");
+      toast.success(editingId ? "Project updated!" : "Project added successfully!", {
+        action: {
+          label: "Copy Code",
+          onClick: () => copyProjectCode(newProject)
+        }
+      });
       setGalleryFiles([]);
       setEditingId(null);
       setShowForm(false);
@@ -207,8 +212,106 @@ const AdminDashboard = () => {
   };
 
   const getExportCode = () => {
-    const code = `export const projects: Project[] = ${JSON.stringify(projectList, null, 2)};`;
-    return code;
+    // Generate only when needed to avoid memory pressure
+    return `export const projects: Project[] = ${JSON.stringify(projectList, null, 2)};`;
+  };
+
+  const getFullFileCode = () => {
+    return `import { getItem, setItem, removeItem } from "@/lib/storage";
+
+export interface Project {
+  id: string;
+  title: string;
+  description: string;
+  problem: string;
+  solution: string;
+  tools: string[];
+  tags: string[];
+  thumbnail: string;
+  gallery?: string[];
+  githubUrl?: string;
+  liveUrl?: string;
+  behanceUrl?: string;
+  featured: boolean;
+}
+
+export const getProjectList = async (): Promise<Project[]> => {
+  const localProjects = await getItem("custom_projects") || [];
+  const order = await getItem("projects_order") || [];
+  
+  const allProjects = [...projects, ...localProjects];
+  
+  if (order.length > 0) {
+    allProjects.sort((a, b) => {
+      const indexA = order.indexOf(a.id);
+      const indexB = order.indexOf(b.id);
+      if (indexA === -1 && indexB === -1) return 0;
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      return indexA - indexB;
+    });
+  }
+  
+  return allProjects;
+};
+
+export const getProject = async (id: string): Promise<Project | undefined> => {
+  const list = await getProjectList();
+  return list.find(p => p.id === id);
+};
+
+export const saveProject = async (project: Project): Promise<void> => {
+  const localProjects = await getItem("custom_projects") || [];
+  const index = localProjects.findIndex((p: Project) => p.id === project.id);
+  
+  if (index !== -1) {
+    localProjects[index] = project;
+  } else {
+    localProjects.push(project);
+  }
+  
+  await setItem("custom_projects", localProjects);
+};
+
+export const deleteProject = async (id: string): Promise<void> => {
+  const localProjects = await getItem("custom_projects") || [];
+  const filtered = localProjects.filter((p: Project) => p.id !== id);
+  await setItem("custom_projects", filtered);
+};
+
+export const reorderProjects = async (projectList: Project[]): Promise<void> => {
+  const order = projectList.map(p => p.id);
+  await setItem("projects_order", order);
+};
+
+export const getAllTools = async (): Promise<string[]> => {
+  const list = await getProjectList();
+  const tools = new Set<string>();
+  list.forEach(p => p.tools.forEach(t => tools.add(t)));
+  return Array.from(tools);
+};
+
+export const projects: Project[] = ${JSON.stringify(projectList, null, 2)};
+`;
+  };
+
+  const downloadProjectsFile = () => {
+    const fileContent = getFullFileCode();
+    const blob = new Blob([fileContent], { type: "text/typescript" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "projects.ts";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("projects.ts download started!");
+  };
+
+  const copyProjectCode = (project: Project) => {
+    navigator.clipboard.writeText(JSON.stringify(project, null, 2));
+    toast.success(`${project.title} code snippet copied!`);
   };
 
   const copyToClipboard = () => {
@@ -281,30 +384,52 @@ const AdminDashboard = () => {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-xl font-display font-bold text-accent">Export Projects Data</h3>
-                <p className="text-muted-foreground text-sm">Copy this code and paste it into <code className="text-primary">src/data/projects.ts</code> to make your projects permanent.</p>
+                <p className="text-muted-foreground text-sm">Download the updated file or copy the code to <code className="text-primary">src/data/projects.ts</code>.</p>
               </div>
-              <button 
-                onClick={copyToClipboard}
-                className="flex items-center gap-2 bg-accent/10 text-accent hover:bg-accent/20 px-4 py-2 rounded-lg transition-all border border-accent/20"
-              >
-                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                {copied ? "Copied!" : "Copy Code"}
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  onClick={downloadProjectsFile}
+                  className="flex items-center gap-2 bg-primary text-primary-foreground hover:opacity-90 px-4 py-2 rounded-lg transition-all"
+                >
+                  <Download className="w-4 h-4" />
+                  Download projects.ts
+                </button>
+                <button 
+                  onClick={copyToClipboard}
+                  className="flex items-center gap-2 bg-accent/10 text-accent hover:bg-accent/20 px-4 py-2 rounded-lg transition-all border border-accent/20"
+                >
+                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  {copied ? "Copied!" : "Copy Full Array"}
+                </button>
+              </div>
             </div>
             
-            <div className="relative">
-              <pre className="bg-black/40 p-4 rounded-lg overflow-x-auto text-[13px] text-blue-300 font-mono max-h-[300px] border border-white/5">
-                {getExportCode()}
-              </pre>
-              <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#1A1C23] to-transparent pointer-events-none" />
+            <div className="bg-black/40 p-8 rounded-lg text-center border border-white/5 mb-6">
+              <div className="max-w-md mx-auto">
+                <Code className="w-12 h-12 text-accent/40 mx-auto mb-4" />
+                <h4 className="text-lg font-medium text-foreground mb-2">Data Ready for Export</h4>
+                <p className="text-sm text-muted-foreground mb-6">
+                  Code preview is hidden for performance due to large image data. Use the buttons above to copy or download your <strong>{projectList.length} projects</strong>.
+                </p>
+                <div className="grid grid-cols-2 gap-4 text-left bg-background/50 p-4 rounded-lg border border-border">
+                  <div>
+                    <span className="text-[10px] text-muted-foreground uppercase font-bold block">Total Projects</span>
+                    <span className="text-xl font-display font-bold text-primary">{projectList.length}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground uppercase font-bold block">Export Format</span>
+                    <span className="text-xl font-display font-bold text-accent">TypeScript</span>
+                  </div>
+                </div>
+              </div>
             </div>
             
-            <div className="mt-6 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+            <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
               <p className="text-sm text-primary-foreground/80 leading-relaxed">
-                <strong>Why is this needed?</strong> Projects added via this dashboard are stored in your browser only. 
-                To show them on the deployed site for everyone, you must "bake" them into the source code by updating the 
-                <code className="mx-1 px-1 bg-primary/20 rounded text-primary">projects</code> array in 
-                <code className="mx-1 px-1 bg-primary/20 rounded text-primary">src/data/projects.ts</code>.
+                <strong>How to update:</strong> To make your projects permanent and visible in production, you have two options:
+                <br />1. <strong>Easiest:</strong> Download the file above and replace <code className="mx-1 px-1 bg-primary/20 rounded text-primary">src/data/projects.ts</code> with it.
+                <br />2. <strong>Manual:</strong> Copy the code block and replace the <strong>entire</strong> <code className="mx-1 px-1 bg-primary/20 rounded text-primary">export const projects</code> array at the bottom of the file.
+                <br /><br /><span className="text-accent font-bold">This export includes all {projectList.length} projects (both existing and new ones).</span>
               </p>
             </div>
           </motion.div>
@@ -569,17 +694,26 @@ const AdminDashboard = () => {
                             <Link to={`/project/${project.id}`} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
                               <Eye className="w-4 h-4" />
                             </Link>
+                            <button 
+                              onClick={() => copyProjectCode(project)}
+                              className="p-2 text-muted-foreground hover:text-accent transition-colors"
+                              title="Copy Code Snippet"
+                            >
+                              <Code className="w-4 h-4" />
+                            </button>
                             {!isStatic && (
                               <>
                                 <button 
                                   onClick={() => handleEdit(project)}
                                   className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+                                  title="Edit Project"
                                 >
                                   <Edit className="w-4 h-4" />
                                 </button>
                                 <button
                                   onClick={() => handleDelete(project.id)}
                                   className="p-2 text-muted-foreground hover:text-destructive transition-colors"
+                                  title="Delete Project"
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </button>

@@ -9,7 +9,6 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Resume from "./pages/Resume";
 import NotFound from "./pages/NotFound";
 import { XPProvider } from "./components/XPSystem";
-import CustomCursor from "./components/CustomCursor";
 import InteractiveGlow from "./components/InteractiveGlow";
 
 import ScrollToTop from "./components/ScrollToTop";
@@ -22,7 +21,6 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <CustomCursor />
         <InteractiveGlow />
         <BrowserRouter>
           <ScrollToTop />
