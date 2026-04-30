@@ -153,7 +153,7 @@ const HeroSection = () => {
                     }`}
                 >
                   {btn.label.includes("Download") ? "Go to Resume" : btn.label}
-                  {btn.icon}
+
                 </motion.a>
               ))}
             </div>
