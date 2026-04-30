@@ -3,6 +3,9 @@ import { ArrowDown, MapPin, Download, ArrowUpRight } from "lucide-react";
 import abdelrhmanPhoto from "@/assets/abdelrhman.jpg";
 import { useState, useEffect } from "react";
 import ParticlesCanvas from "./ParticlesCanvas";
+import { useXP } from "./XPSystem";
+import { useNavigate } from "react-router-dom";
+
 const skills = ["React.js", "Next.js", "TypeScript", "UX Design", "SQL"];
 
 const stats = [
@@ -14,6 +17,8 @@ const stats = [
 const HeroSection = () => {
   const [cvUrl, setCvUrl] = useState("/cv.pdf");
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
+  const { gainXP } = useXP();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const saved = localStorage.getItem("cv_metadata");
@@ -130,8 +135,16 @@ const HeroSection = () => {
               ].map((btn, i) => (
                 <motion.a
                   key={i}
-                  href={btn.href}
-                  download={btn.label.includes("Download")}
+                  href={btn.label.includes("Download") ? "/resume" : btn.href}
+                  onClick={(e) => {
+                    if (btn.label.includes("Download")) {
+                      e.preventDefault();
+                      gainXP(15, e.clientX, e.clientY);
+                      navigate("/resume");
+                    } else {
+                      gainXP(5, e.clientX, e.clientY);
+                    }
+                  }}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.97 }}
                   className={`group inline-flex items-center gap-2 px-6 py-3 rounded-full border text-sm font-medium transition-all duration-300 ${btn.primary
@@ -139,7 +152,7 @@ const HeroSection = () => {
                     : "border-border hover:bg-accent hover:text-accent-foreground hover:border-accent"
                     }`}
                 >
-                  {btn.label}
+                  {btn.label.includes("Download") ? "Go to Resume" : btn.label}
                   {btn.icon}
                 </motion.a>
               ))}

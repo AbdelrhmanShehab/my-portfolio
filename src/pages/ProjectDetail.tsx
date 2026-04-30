@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import { ArrowLeft, ExternalLink, Github, Palette } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, ExternalLink, Github, Palette, ChevronLeft, ChevronRight } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { getProject } from "@/data/projects";
@@ -12,6 +12,29 @@ const ProjectDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [project, setProject] = useState<Project | null | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  
+  const handleNext = () => {
+    if (project?.gallery && currentSlide < project.gallery.length - 1) {
+      setCurrentSlide(prev => prev + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentSlide > 0) {
+      setCurrentSlide(prev => prev - 1);
+    }
+  };
+
+  const handleDragEnd = (e: any, { offset, velocity }: any) => {
+    const swipe = Math.abs(offset.x) > 50 && Math.abs(velocity.x) > 500;
+    if (offset.x < -100 || (swipe && offset.x < 0)) {
+      handleNext();
+    } else if (offset.x > 100 || (swipe && offset.x > 0)) {
+      handlePrev();
+    }
+  };
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -151,16 +174,63 @@ const ProjectDetail = () => {
                     <span className="w-8 h-px bg-accent" />
                     Gallery
                   </h2>
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {project.gallery.map((img, i) => (
-                      <motion.div 
-                        key={i} 
-                        whileHover={{ y: -5 }}
-                        className="rounded-xl overflow-hidden border border-white/5 shadow-lg bg-card/50 backdrop-blur-sm"
-                      >
-                        <img src={img} alt={`${project.title} screenshot ${i + 1}`} loading="lazy" className="w-full h-auto object-cover aspect-video" />
-                      </motion.div>
-                    ))}
+                  
+                  <div className="relative group/slider overflow-hidden rounded-2xl border border-white/10 shadow-2xl bg-card/20">
+                    <motion.div 
+                      className="flex cursor-grab active:cursor-grabbing"
+                      drag="x"
+                      dragConstraints={{ left: 0, right: 0 }}
+                      onDragEnd={handleDragEnd}
+                      animate={{ x: `-${currentSlide * 100}%` }}
+                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    >
+                      {project.gallery.map((img, i) => (
+                        <div key={i} className="min-w-full px-4">
+                          <img 
+                            src={img} 
+                            alt={`${project.title} screenshot ${i + 1}`} 
+                            loading="lazy" 
+                            onClick={() => setSelectedImage(img)}
+                            className="w-full h-auto object-cover rounded-xl aspect-[16/9] cursor-zoom-in" 
+                          />
+                        </div>
+                      ))}
+                    </motion.div>
+
+                    {/* Navigation Buttons */}
+                    {project.gallery.length > 1 && (
+                      <>
+                        <div className="absolute inset-y-0 left-0 flex items-center p-4">
+                          <button 
+                            onClick={handlePrev}
+                            disabled={currentSlide === 0}
+                            className="w-12 h-12 rounded-full bg-background/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-foreground hover:bg-accent hover:text-accent-foreground transition-all disabled:opacity-0 shadow-lg z-30"
+                          >
+                            <ChevronLeft className="w-6 h-6" />
+                          </button>
+                        </div>
+                        <div className="absolute inset-y-0 right-0 flex items-center p-4">
+                          <button 
+                            onClick={handleNext}
+                            disabled={currentSlide === (project.gallery?.length || 1) - 1}
+                            className="w-12 h-12 rounded-full bg-background/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-foreground hover:bg-accent hover:text-accent-foreground transition-all disabled:opacity-0 shadow-lg z-30"
+                          >
+                            <ChevronRight className="w-6 h-6" />
+                          </button>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Dots */}
+                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
+                      {project.gallery.map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setCurrentSlide(i)}
+                          className={`w-2 h-2 rounded-full transition-all ${currentSlide === i ? "bg-accent w-6" : "bg-white/40 hover:bg-white/60"}`}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </motion.div>
               )}
@@ -242,6 +312,38 @@ const ProjectDetail = () => {
       </div>
 
       <Footer />
+
+      {/* Image Preview Modal */}
+      <AnimatePresence>
+        {selectedImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelectedImage(null)}
+            className="fixed inset-0 z-[2000] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative max-w-7xl w-full max-h-[90vh] flex items-center justify-center"
+            >
+              <img 
+                src={selectedImage} 
+                alt="Preview" 
+                className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl" 
+              />
+              <button 
+                onClick={() => setSelectedImage(null)}
+                className="absolute -top-12 right-0 text-white hover:text-accent transition-colors flex items-center gap-2 font-display text-sm uppercase tracking-widest"
+              >
+                Close <span className="text-2xl">&times;</span>
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

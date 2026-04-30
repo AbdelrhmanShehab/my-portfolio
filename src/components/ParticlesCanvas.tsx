@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-const ParticlesCanvas = ({ speed = 1, opacity = 0.4 }) => {
+const ParticlesCanvas = ({ speed = 1, opacity = 0.4 }: { speed?: number; opacity?: number }) => {
     const canvasRef = useRef(null);
     const mouse = useRef({ x: 0, y: 0 });
 

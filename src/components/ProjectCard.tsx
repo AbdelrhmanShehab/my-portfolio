@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useRef, useState, useEffect } from "react";
 import type { Project } from "@/data/projects";
 import { ArrowUpRight } from "lucide-react";
+import { useXP } from "./XPSystem";
 
 interface ProjectCardProps {
   project: Project;
@@ -13,6 +14,7 @@ const ProjectCard = ({ project, index }: ProjectCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
+  const { gainXP } = useXP();
 
   // 🎯 3D Tilt Logic using Framer Motion
   const x = useMotionValue(0);
@@ -81,10 +83,11 @@ const ProjectCard = ({ project, index }: ProjectCardProps) => {
 
         <Link
           to={`/project/${project.id}`}
+          onClick={(e) => gainXP(20, e.clientX, e.clientY)}
           className="relative block h-full bg-card/30 backdrop-blur-md border border-white/10 rounded-[2rem] p-6 overflow-hidden transition-colors duration-500 group-hover:border-accent/40 group-hover:bg-card/50"
         >
           {/* 🎞️ IMAGE SLIDER SECTION */}
-          <div className="relative aspect-[10/11] rounded-2xl overflow-hidden mb-6 bg-muted">
+          <div className="relative aspect-[10/9] rounded-2xl overflow-hidden mb-6 bg-muted">
             <AnimatePresence mode="wait">
               <motion.img
                 key={isHovered ? activeIndex : "thumbnail"}
@@ -112,8 +115,8 @@ const ProjectCard = ({ project, index }: ProjectCardProps) => {
                   >
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ 
-                        width: i === activeIndex ? "100%" : i < activeIndex ? "100%" : "0%" 
+                      animate={{
+                        width: i === activeIndex ? "100%" : i < activeIndex ? "100%" : "0%"
                       }}
                       transition={{ duration: i === activeIndex ? 2 : 0.3 }}
                       className="h-full bg-accent"

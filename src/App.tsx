@@ -6,27 +6,36 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index";
 import ProjectDetail from "./pages/ProjectDetail";
 import AdminDashboard from "./pages/AdminDashboard";
+import Resume from "./pages/Resume";
 import NotFound from "./pages/NotFound";
-// import CustomCursor from "./components/CustomCursor";
+import { XPProvider } from "./components/XPSystem";
+import CustomCursor from "./components/CustomCursor";
+import InteractiveGlow from "./components/InteractiveGlow";
+
+import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
 
 const App = () => (
-
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      {/* <CustomCursor /> */}
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/project/:id" element={<ProjectDetail />} />
-          <Route path="/dashboard-secret" element={<AdminDashboard />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <XPProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <CustomCursor />
+        <InteractiveGlow />
+        <BrowserRouter>
+          <ScrollToTop />
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/project/:id" element={<ProjectDetail />} />
+            <Route path="/dashboard-secret" element={<AdminDashboard />} />
+            <Route path="/resume" element={<Resume />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </XPProvider>
   </QueryClientProvider>
 );
 
