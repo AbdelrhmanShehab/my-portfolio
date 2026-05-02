@@ -4,6 +4,7 @@ import { Plus, Edit, Trash2, Eye, Upload, X, ChevronUp, ChevronDown, Download, C
 import { projects, type Project, getProjectList, saveProject, deleteProject, reorderProjects } from "@/data/projects";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 const AdminDashboard = () => {
   const [galleryFiles, setGalleryFiles] = useState<string[]>([]);
   const [projectList, setProjectList] = useState<Project[]>([]);
@@ -11,6 +12,11 @@ const AdminDashboard = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showExport, setShowExport] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  
+  // Store actual File objects for upload
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [galleryFileObjects, setGalleryFileObjects] = useState<File[]>([]);
   
   useEffect(() => {
     const fetchProjects = async () => {
@@ -50,10 +56,11 @@ const AdminDashboard = () => {
 
     files.forEach((file) => {
       if (file.size > 2 * 1024 * 1024) {
-        toast.error(`"${file.name}" is too large. Please keep images under 2MB for better performance.`);
+        toast.error(`"${file.name}" is too large. Please keep images under 2MB.`);
         return;
       }
 
+      setGalleryFileObjects(prev => [...prev, file]);
       const reader = new FileReader();
       reader.onloadend = () => {
         setGalleryFiles((prev) => [...prev, reader.result as string]);
@@ -74,6 +81,7 @@ const AdminDashboard = () => {
         return;
       }
 
+      setThumbnailFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setFormData(prev => ({ ...prev, thumbnail: reader.result as string }));
@@ -82,8 +90,27 @@ const AdminDashboard = () => {
     }
   };
 
+  const uploadImage = async (file: File): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `projects/${fileName}`;
+
+    const { error: uploadError, data } = await supabase.storage
+      .from('projects')
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('projects')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  };
+
   const removeThumbnail = () => {
     setFormData(prev => ({ ...prev, thumbnail: "" }));
+    setThumbnailFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -93,23 +120,41 @@ const AdminDashboard = () => {
       return;
     }
 
-    const newProject: Project = {
-      id: editingId || formData.title.toLowerCase().replace(/\s+/g, "-"),
-      title: formData.title,
-      description: formData.description,
-      problem: formData.problem,
-      solution: formData.solution,
-      tools: formData.tools.split(",").map(t => t.trim()).filter(t => t),
-      tags: formData.tags.split(",").map(t => t.trim()).filter(t => t),
-      thumbnail: formData.thumbnail,
-      gallery: galleryFiles.length > 0 ? galleryFiles : [formData.thumbnail],
-      githubUrl: formData.githubUrl,
-      liveUrl: formData.liveUrl,
-      behanceUrl: formData.behanceUrl,
-      featured: false
-    };
+    setIsUploading(true);
+    const toastId = toast.loading(editingId ? "Updating project..." : "Adding project...");
 
     try {
+      let thumbnailUrl = formData.thumbnail;
+      if (thumbnailFile) {
+        thumbnailUrl = await uploadImage(thumbnailFile);
+      }
+
+      const galleryUrls = await Promise.all(
+        galleryFileObjects.map(async (file, idx) => {
+          // If it's a new file object, upload it
+          return await uploadImage(file);
+        })
+      );
+
+      // If we are editing and didn't add new gallery files, keep old ones
+      const finalGallery = galleryUrls.length > 0 ? galleryUrls : (editingId ? galleryFiles : [thumbnailUrl]);
+
+      const newProject: Project = {
+        id: editingId || formData.title.toLowerCase().replace(/\s+/g, "-"),
+        title: formData.title,
+        description: formData.description,
+        problem: formData.problem,
+        solution: formData.solution,
+        tools: formData.tools.split(",").map(t => t.trim()).filter(t => t),
+        tags: formData.tags.split(",").map(t => t.trim()).filter(t => t),
+        thumbnail: thumbnailUrl,
+        gallery: finalGallery,
+        githubUrl: formData.githubUrl,
+        liveUrl: formData.liveUrl,
+        behanceUrl: formData.behanceUrl,
+        featured: false
+      };
+
       await saveProject(newProject);
       setFormData({
         title: "",
@@ -130,12 +175,18 @@ const AdminDashboard = () => {
         }
       });
       setGalleryFiles([]);
+      setGalleryFileObjects([]);
+      setThumbnailFile(null);
       setEditingId(null);
       setShowForm(false);
+      toast.dismiss(toastId);
       const list = await getProjectList();
       setProjectList(list);
     } catch (error) {
+      toast.dismiss();
       toast.error(error instanceof Error ? error.message : "Failed to save project");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -585,7 +636,10 @@ export const projects: Project[] = ${JSON.stringify(projectList, null, 2)};
                       <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
                         <img src={file} alt="" className="w-full h-full object-cover" />
                         <button
-                          onClick={() => setGalleryFiles(prev => prev.filter((_, i) => i !== idx))}
+                          onClick={() => {
+                            setGalleryFiles(prev => prev.filter((_, i) => i !== idx));
+                            setGalleryFileObjects(prev => prev.filter((_, i) => i !== idx));
+                          }}
                           className="absolute inset-0 bg-destructive/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <X className="w-4 h-4 text-white" />
@@ -599,9 +653,10 @@ export const projects: Project[] = ${JSON.stringify(projectList, null, 2)};
             <div className="flex gap-3 mt-6">
               <button
                 onClick={handleSave}
-                className="bg-gradient-gold text-primary-foreground font-medium px-6 py-2.5 rounded-lg hover:opacity-90 transition-opacity"
+                disabled={isUploading}
+                className="bg-gradient-gold text-primary-foreground font-medium px-6 py-2.5 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
               >
-                Save Project
+                {isUploading ? "Uploading..." : "Save Project"}
               </button>
               <button
                 onClick={() => {
@@ -620,6 +675,8 @@ export const projects: Project[] = ${JSON.stringify(projectList, null, 2)};
                     thumbnail: ""
                   });
                   setGalleryFiles([]);
+                  setGalleryFileObjects([]);
+                  setThumbnailFile(null);
                 }}
                 className="bg-secondary text-secondary-foreground px-6 py-2.5 rounded-lg hover:bg-secondary/80 transition-colors"
               >

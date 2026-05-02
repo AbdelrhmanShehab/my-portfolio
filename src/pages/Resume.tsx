@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import ParticlesCanvas from "@/components/ParticlesCanvas";
-import CustomCursor from "@/components/CustomCursor";
 import InteractiveGlow from "@/components/InteractiveGlow";
 import Magnetic from "@/components/Magnetic";
 import { XPProvider, useXP } from "@/components/XPSystem";
