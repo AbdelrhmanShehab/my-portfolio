@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { motion, useInView, Variants } from "framer-motion";
 import {
   MapPin, Mail, Phone, Github, Linkedin, GraduationCap,
@@ -10,6 +10,7 @@ import ParticlesCanvas from "@/components/ParticlesCanvas";
 import InteractiveGlow from "@/components/InteractiveGlow";
 import Magnetic from "@/components/Magnetic";
 import { XPProvider, useXP } from "@/components/XPSystem";
+import { supabase } from "@/lib/supabase";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -158,6 +159,27 @@ const badgeColors: Record<string, string> = {
 
 const ResumeContent = () => {
   const { gainXP } = useXP();
+  const [cvUrl, setCvUrl] = useState("/cv.pdf");
+
+  useEffect(() => {
+    const fetchCvUrl = async () => {
+      try {
+        const { data } = supabase.storage
+          .from('projects')
+          .getPublicUrl('projects/resume.pdf');
+          
+        if (data?.publicUrl) {
+          // Check if the file actually exists by doing a quick fetch or just use it with a fallback
+          // For now, we'll append a cache-busting timestamp and use it
+          setCvUrl(`${data.publicUrl}?t=${Date.now()}`);
+        }
+      } catch (error) {
+        console.error("Error fetching CV URL:", error);
+      }
+    };
+
+    fetchCvUrl();
+  }, []);
 
   const handleCollectXP = (e: React.MouseEvent, amount: number = 10) => {
     gainXP(amount, e.clientX, e.clientY);
@@ -231,11 +253,30 @@ const ResumeContent = () => {
               <motion.div variants={fadeUp} custom={4} className="mt-8">
                 <Magnetic strength={0.2}>
                   <motion.a
-                    href="/cv.pdf"
-                    download
+                    href={cvUrl}
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      handleCollectXP(e as any, 50);
+                      
+                      try {
+                        const response = await fetch(cvUrl);
+                        const blob = await response.blob();
+                        const blobUrl = window.URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = blobUrl;
+                        link.download = "Abdelrhman_Shihab_Resume.pdf";
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        window.URL.revokeObjectURL(blobUrl);
+                      } catch (error) {
+                        console.error("Download failed:", error);
+                        // Fallback: try opening in new tab if blob fetch fails
+                        window.open(cvUrl, '_blank');
+                      }
+                    }}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={(e) => handleCollectXP(e as any, 50)}
                     className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-accent text-accent-foreground font-medium text-sm hover:shadow-glow transition-all interactive"
                   >
                     <Download className="w-4 h-4" /> Download PDF Version

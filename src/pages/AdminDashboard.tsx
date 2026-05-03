@@ -13,6 +13,7 @@ const AdminDashboard = () => {
   const [showExport, setShowExport] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isCvUploading, setIsCvUploading] = useState(false);
   
   // Store actual File objects for upload
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
@@ -234,7 +235,7 @@ const AdminDashboard = () => {
     toast.success("Order updated");
   };
 
-  const handleCvUpload = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleCvUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.type !== "application/pdf") {
@@ -246,12 +247,40 @@ const AdminDashboard = () => {
         return;
       }
 
-      // In a real app, you'd upload to a server. 
-      const mockUrl = URL.createObjectURL(file);
-      const metadata = { name: file.name, url: mockUrl };
-      setCvFile(metadata);
-      localStorage.setItem("cv_metadata", JSON.stringify(metadata));
-      toast.success("CV uploaded successfully!");
+      setIsCvUploading(true);
+      const toastId = toast.loading("Uploading CV to storage...");
+
+      try {
+        // Using a known working path prefix 'projects/' to avoid potential folder restrictions
+        const filePath = `projects/resume.pdf`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('projects')
+          .upload(filePath, file, {
+            upsert: true,
+            contentType: 'application/pdf'
+          });
+
+        if (uploadError) throw uploadError;
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('projects')
+          .getPublicUrl(filePath);
+
+        // Append a timestamp to bypass browser cache
+        const finalUrl = `${publicUrl}?t=${Date.now()}`;
+        const metadata = { name: file.name, url: finalUrl };
+        
+        setCvFile(metadata);
+        localStorage.setItem("cv_metadata", JSON.stringify(metadata));
+        toast.success("CV uploaded successfully!", { id: toastId });
+      } catch (error: any) {
+        toast.error(`Upload failed: ${error.message || 'Unknown error'}`, { id: toastId });
+        console.error("CV upload error:", error);
+      } finally {
+        setIsCvUploading(false);
+      }
     }
   };
 
@@ -517,9 +546,10 @@ export const projects: Project[] = ${JSON.stringify(projectList, null, 2)};
               ) : (
                 <button
                   onClick={() => cvInputRef.current?.click()}
-                  className="inline-flex items-center gap-2 bg-secondary text-secondary-foreground font-medium px-4 py-2 rounded-lg hover:bg-secondary/80 transition-colors"
+                  disabled={isCvUploading}
+                  className="inline-flex items-center gap-2 bg-secondary text-secondary-foreground font-medium px-4 py-2 rounded-lg hover:bg-secondary/80 transition-colors disabled:opacity-50"
                 >
-                  <Upload className="w-4 h-4" /> Upload PDF
+                  <Upload className="w-4 h-4" /> {isCvUploading ? "Uploading..." : "Upload PDF"}
                 </button>
               )}
             </div>
