@@ -46,6 +46,16 @@ const AdminDashboard = () => {
     behanceUrl: "",
     thumbnail: ""
   });
+
+  const [metrics, setMetrics] = useState<{ 
+    label: string; 
+    value: string; 
+    description?: string;
+    beforeImages: string[];
+    afterImages: string[];
+    beforeFiles: (File | null)[];
+    afterFiles: (File | null)[];
+  }[]>([]);
   const handleGalleryUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const remainingSlots = 6 - galleryFiles.length;
@@ -116,8 +126,8 @@ const AdminDashboard = () => {
   };
 
   const handleSave = async () => {
-    if (!formData.title || !formData.description || !formData.thumbnail) {
-      toast.error("Please fill in the title, description, and upload a thumbnail");
+    if (!formData.title || !formData.description) {
+      toast.error("Please fill in the title and description");
       return;
     }
 
@@ -130,31 +140,66 @@ const AdminDashboard = () => {
         thumbnailUrl = await uploadImage(thumbnailFile);
       }
 
-      const galleryUrls = await Promise.all(
-        galleryFileObjects.map(async (file, idx) => {
-          // If it's a new file object, upload it
-          return await uploadImage(file);
-        })
-      );
+        const galleryUrls = await Promise.all(
+          galleryFileObjects.map(async (file) => {
+            return await uploadImage(file);
+          })
+        );
 
-      // If we are editing and didn't add new gallery files, keep old ones
-      const finalGallery = galleryUrls.length > 0 ? galleryUrls : (editingId ? galleryFiles : [thumbnailUrl]);
+        // Upload metric images
+        const updatedMetrics = await Promise.all(
+          metrics.map(async (metric) => {
+            const beforeImages = [...metric.beforeImages];
+            const afterImages = [...metric.afterImages];
 
-      const newProject: Project = {
-        id: editingId || formData.title.toLowerCase().replace(/\s+/g, "-"),
-        title: formData.title,
-        description: formData.description,
-        problem: formData.problem,
-        solution: formData.solution,
-        tools: formData.tools.split(",").map(t => t.trim()).filter(t => t),
-        tags: formData.tags.split(",").map(t => t.trim()).filter(t => t),
-        thumbnail: thumbnailUrl,
-        gallery: finalGallery,
-        githubUrl: formData.githubUrl,
-        liveUrl: formData.liveUrl,
-        behanceUrl: formData.behanceUrl,
-        featured: false
-      };
+            // Handle multiple files for Before images
+            for (let i = 0; i < metric.beforeFiles.length; i++) {
+              const file = metric.beforeFiles[i];
+              if (file) {
+                const url = await uploadImage(file);
+                if (beforeImages[i]) beforeImages[i] = url;
+                else beforeImages.push(url);
+              }
+            }
+
+            // Handle multiple files for After images
+            for (let i = 0; i < metric.afterFiles.length; i++) {
+              const file = metric.afterFiles[i];
+              if (file) {
+                const url = await uploadImage(file);
+                if (afterImages[i]) afterImages[i] = url;
+                else afterImages.push(url);
+              }
+            }
+
+            const { beforeFiles, afterFiles, ...rest } = metric;
+            return { 
+              ...rest, 
+              beforeImages: beforeImages.filter(img => img), 
+              afterImages: afterImages.filter(img => img) 
+            };
+          })
+        );
+
+        // If we are editing and didn't add new gallery files, keep old ones
+        const finalGallery = galleryUrls.length > 0 ? galleryUrls : (editingId ? galleryFiles : (thumbnailUrl ? [thumbnailUrl] : []));
+
+        const newProject: Project = {
+          id: editingId || formData.title.toLowerCase().replace(/\s+/g, "-"),
+          title: formData.title,
+          description: formData.description,
+          problem: formData.problem,
+          solution: formData.solution,
+          tools: formData.tools.split(",").map(t => t.trim()).filter(t => t),
+          tags: formData.tags.split(",").map(t => t.trim()).filter(t => t),
+          thumbnail: thumbnailUrl,
+          gallery: finalGallery,
+          githubUrl: formData.githubUrl,
+          liveUrl: formData.liveUrl,
+          behanceUrl: formData.behanceUrl,
+          featured: false,
+          metrics: updatedMetrics
+        };
 
       await saveProject(newProject);
       setFormData({
@@ -169,6 +214,7 @@ const AdminDashboard = () => {
         behanceUrl: "",
         thumbnail: ""
       });
+      setMetrics([]);
       toast.success(editingId ? "Project updated!" : "Project added successfully!", {
         action: {
           label: "Copy Code",
@@ -184,8 +230,9 @@ const AdminDashboard = () => {
       const list = await getProjectList();
       setProjectList(list);
     } catch (error) {
+      console.error("FULL SAVE ERROR:", error);
       toast.dismiss();
-      toast.error(error instanceof Error ? error.message : "Failed to save project");
+      toast.error(error instanceof Error ? error.message : "Failed to save project - Check console for details");
     } finally {
       setIsUploading(false);
     }
@@ -204,6 +251,15 @@ const AdminDashboard = () => {
       behanceUrl: project.behanceUrl || "",
       thumbnail: project.thumbnail
     });
+    setMetrics((project.metrics || []).map(m => ({
+      label: m.label,
+      value: m.value,
+      description: m.description || "",
+      beforeImages: m.beforeImages || [],
+      afterImages: m.afterImages || [],
+      beforeFiles: [null, null],
+      afterFiles: [null, null]
+    })));
     setGalleryFiles(project.gallery || []);
     setEditingId(project.id);
     setShowForm(true);
@@ -313,6 +369,11 @@ export interface Project {
   liveUrl?: string;
   behanceUrl?: string;
   featured: boolean;
+  metrics?: {
+    label: string;
+    value: string;
+    icon?: string;
+  }[];
 }
 
 export const getProjectList = async (): Promise<Project[]> => {
@@ -678,6 +739,174 @@ export const projects: Project[] = ${JSON.stringify(projectList, null, 2)};
                     ))}
                   </div>
                 )}
+              </div>
+
+              <div className="sm:col-span-2 space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-foreground block">Project Impact Metrics</label>
+                  <button
+                    type="button"
+                    onClick={() => setMetrics([...metrics, { 
+                      label: "", 
+                      value: "", 
+                      description: "", 
+                      beforeImages: [], 
+                      afterImages: [], 
+                      beforeFiles: [null, null], 
+                      afterFiles: [null, null] 
+                    }])}
+                    className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-md hover:bg-primary/20 transition-colors"
+                  >
+                    + Add Metric
+                  </button>
+                </div>
+                {metrics.map((metric, idx) => (
+                  <div key={idx} className="space-y-4 p-4 bg-secondary/50 border border-border rounded-xl relative group/metric">
+                    <button
+                      type="button"
+                      onClick={() => setMetrics(metrics.filter((_, i) => i !== idx))}
+                      className="absolute top-2 right-2 p-1.5 text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover/metric:opacity-100"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                    
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[10px] uppercase text-muted-foreground font-bold mb-1 block">Label</label>
+                        <input
+                          type="text"
+                          value={metric.label}
+                          onChange={(e) => {
+                            const newMetrics = [...metrics];
+                            newMetrics[idx].label = e.target.value;
+                            setMetrics(newMetrics);
+                          }}
+                          className="w-full px-4 py-2.5 bg-secondary border border-border rounded-lg text-sm"
+                          placeholder="e.g. Performance"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] uppercase text-muted-foreground font-bold mb-1 block">Value</label>
+                        <input
+                          type="text"
+                          value={metric.value}
+                          onChange={(e) => {
+                            const newMetrics = [...metrics];
+                            newMetrics[idx].value = e.target.value;
+                            setMetrics(newMetrics);
+                          }}
+                          className="w-full px-4 py-2.5 bg-secondary border border-border rounded-lg text-sm"
+                          placeholder="e.g. +45%"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] uppercase text-muted-foreground font-bold mb-1 block">Description</label>
+                      <textarea
+                        value={metric.description}
+                        onChange={(e) => {
+                          const newMetrics = [...metrics];
+                          newMetrics[idx].description = e.target.value;
+                          setMetrics(newMetrics);
+                        }}
+                        className="w-full px-4 py-2.5 bg-secondary border border-border rounded-lg text-sm"
+                        rows={2}
+                        placeholder="Explain the impact..."
+                      />
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-8">
+                      {/* Before Images */}
+                      <div className="space-y-3">
+                        <label className="text-[10px] uppercase text-muted-foreground font-bold block">Before Photos (1-2)</label>
+                        <div className="flex flex-wrap gap-3">
+                          {[0, 1].map((i) => (
+                            <div key={i} className="flex-1 min-w-[120px]">
+                              {(metric.beforeFiles[i] || metric.beforeImages[i]) ? (
+                                <div className="relative aspect-video rounded-lg overflow-hidden border border-border">
+                                  <img 
+                                    src={metric.beforeFiles[i] ? URL.createObjectURL(metric.beforeFiles[i]!) : metric.beforeImages[i]} 
+                                    className="w-full h-full object-cover" 
+                                  />
+                                  <button 
+                                    onClick={() => {
+                                      const newMetrics = [...metrics];
+                                      newMetrics[idx].beforeFiles[i] = null;
+                                      newMetrics[idx].beforeImages = newMetrics[idx].beforeImages.filter((_, idx) => idx !== i);
+                                      setMetrics(newMetrics);
+                                    }}
+                                    className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                                  >
+                                    <X className="w-4 h-4 text-white" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      const newMetrics = [...metrics];
+                                      newMetrics[idx].beforeFiles[i] = file;
+                                      setMetrics(newMetrics);
+                                    }
+                                  }}
+                                  className="w-full text-[10px] text-muted-foreground file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:bg-primary/10 file:text-primary"
+                                />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* After Images */}
+                      <div className="space-y-3">
+                        <label className="text-[10px] uppercase text-muted-foreground font-bold block">After Photos (1-2)</label>
+                        <div className="flex flex-wrap gap-3">
+                          {[0, 1].map((i) => (
+                            <div key={i} className="flex-1 min-w-[120px]">
+                              {(metric.afterFiles[i] || metric.afterImages[i]) ? (
+                                <div className="relative aspect-video rounded-lg overflow-hidden border border-border">
+                                  <img 
+                                    src={metric.afterFiles[i] ? URL.createObjectURL(metric.afterFiles[i]!) : metric.afterImages[i]} 
+                                    className="w-full h-full object-cover" 
+                                  />
+                                  <button 
+                                    onClick={() => {
+                                      const newMetrics = [...metrics];
+                                      newMetrics[idx].afterFiles[i] = null;
+                                      newMetrics[idx].afterImages = newMetrics[idx].afterImages.filter((_, idx) => idx !== i);
+                                      setMetrics(newMetrics);
+                                    }}
+                                    className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                                  >
+                                    <X className="w-4 h-4 text-white" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      const newMetrics = [...metrics];
+                                      newMetrics[idx].afterFiles[i] = file;
+                                      setMetrics(newMetrics);
+                                    }
+                                  }}
+                                  className="w-full text-[10px] text-muted-foreground file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:bg-primary/10 file:text-primary"
+                                />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
             <div className="flex gap-3 mt-6">

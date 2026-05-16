@@ -14,6 +14,14 @@ export interface Project {
   liveUrl?: string;
   behanceUrl?: string;
   featured: boolean;
+  metrics?: {
+    label: string;
+    value: string;
+    icon?: string;
+    description?: string;
+    beforeImages?: string[];
+    afterImages?: string[];
+  }[];
 }
 
 // Map from DB (snake_case) to JS (camelCase)
@@ -30,7 +38,13 @@ const mapFromDB = (data: any): Project => ({
   githubUrl: data.github_url || "",
   liveUrl: data.live_url || "",
   featured: data.featured || false,
-  behanceUrl: "",
+  behanceUrl: data.behance_url || "",
+  metrics: (data.metrics || []).map((m: any) => ({
+    ...m,
+    // Support migration from single to plural
+    beforeImages: m.beforeImages || (m.beforeImage ? [m.beforeImage] : []),
+    afterImages: m.afterImages || (m.afterImage ? [m.afterImage] : [])
+  })),
 });
 
 // Map from JS (camelCase) to DB (snake_case)
@@ -43,11 +57,17 @@ const mapToDB = (project: Project) => {
     solution: project.solution,
     tools: project.tools,
     tags: project.tags,
-    thumbnail: project.thumbnail,
-    gallery: project.gallery,
+    thumbnail: project.thumbnail || "",
+    gallery: project.gallery || [],
     github_url: project.githubUrl,
     live_url: project.liveUrl,
     featured: project.featured,
+    behance_url: project.behanceUrl || null,
+    metrics: project.metrics?.map(m => {
+      // Remove deprecated singular fields when saving to DB
+      const { beforeImage, afterImage, ...rest } = m as any;
+      return rest;
+    }) || [],
   };
 };
 

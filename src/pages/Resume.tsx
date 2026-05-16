@@ -102,10 +102,10 @@ const fadeUp: Variants = {
   visible: (i: any) => ({
     opacity: 1,
     y: 0,
-    transition: { 
-      duration: 0.6, 
-      delay: (i || 0) * 0.1, 
-      ease: [0.22, 1, 0.36, 1] 
+    transition: {
+      duration: 0.6,
+      delay: (i || 0) * 0.1,
+      ease: [0.22, 1, 0.36, 1]
     },
   }),
 };
@@ -167,7 +167,7 @@ const ResumeContent = () => {
         const { data } = supabase.storage
           .from('projects')
           .getPublicUrl('projects/resume.pdf');
-          
+
         if (data?.publicUrl) {
           // Check if the file actually exists by doing a quick fetch or just use it with a fallback
           // For now, we'll append a cache-busting timestamp and use it
@@ -183,7 +183,7 @@ const ResumeContent = () => {
 
   const handleCollectXP = (e: React.MouseEvent, amount: number = 10) => {
     gainXP(amount, e.clientX, e.clientY);
-    
+
     // Add a little haptic-like scale effect to the clicked element if needed
     const target = e.currentTarget as HTMLElement;
     target.style.transform = "scale(0.95)";
@@ -257,7 +257,7 @@ const ResumeContent = () => {
                     onClick={async (e) => {
                       e.preventDefault();
                       handleCollectXP(e as any, 50);
-                      
+
                       try {
                         const response = await fetch(cvUrl);
                         const blob = await response.blob();
@@ -318,7 +318,7 @@ const ResumeContent = () => {
                     <div className={`w-3 h-3 rounded-full ${dotColors[job.color] || "bg-muted"}`} />
                   </div>
 
-                  <div 
+                  <div
                     onClick={(e) => handleCollectXP(e as any, 15)}
                     className={`rounded-2xl border ${borderColors[job.color] || "border-border"} bg-card/50 backdrop-blur-sm p-6 hover:shadow-soft transition-all duration-300 group cursor-pointer active:scale-[0.99]`}
                   >
@@ -397,7 +397,7 @@ const ResumeContent = () => {
                 >
                   <h3 className="font-display text-base mb-2 group-hover:text-accent transition-colors">{proj.name}</h3>
                   <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{proj.description}</p>
-  
+
                   {/* Highlights */}
                   <ul className="space-y-1.5 mb-5">
                     {proj.highlights.map((h, hi) => (
@@ -406,7 +406,7 @@ const ResumeContent = () => {
                       </li>
                     ))}
                   </ul>
-  
+
                   {/* Tech tags */}
                   <div className="flex flex-wrap gap-1.5">
                     {proj.tech.map((t) => (

@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ExternalLink, Github, Palette, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, ExternalLink, Github, Palette, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { getProject } from "@/data/projects";
@@ -163,6 +163,84 @@ const ProjectDetail = () => {
                 <p className="text-muted-foreground leading-relaxed text-lg">{project.solution}</p>
               </motion.div>
 
+              {/* Before & After Transformation */}
+              {project.metrics && project.metrics.some(m => (m.beforeImages && m.beforeImages.length > 0) || (m.afterImages && m.afterImages.length > 0)) && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                >
+                  <h2 className="text-2xl font-display font-bold mb-6 text-foreground flex items-center gap-3">
+                    <span className="w-8 h-px bg-accent" />
+                    Product Transformation
+                  </h2>
+                  
+                  <div className="space-y-16">
+                    {project.metrics.filter(m => (m.beforeImages && m.beforeImages.length > 0) || (m.afterImages && m.afterImages.length > 0)).map((metric, i) => (
+                      <div key={i} className="space-y-8">
+                        <div className="flex items-center gap-3">
+                          <span className="px-3 py-1 bg-accent/10 text-accent text-[10px] font-bold tracking-widest rounded-full border border-accent/20">
+                            {metric.label.toUpperCase()} IMPACT
+                          </span>
+                          <div className="h-px flex-1 bg-white/5" />
+                        </div>
+                        
+                        <div className="grid lg:grid-cols-2 gap-8">
+                          {/* Before Section */}
+                          <div className="space-y-4">
+                            <h4 className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
+                              Before
+                            </h4>
+                            <div className={`grid gap-4 ${metric.beforeImages && metric.beforeImages.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                              {metric.beforeImages?.map((img, idx) => (
+                                <div 
+                                  key={idx}
+                                  className="relative group/img overflow-hidden rounded-2xl border border-white/5 cursor-zoom-in aspect-video"
+                                  onClick={() => setSelectedImage(img)}
+                                >
+                                  <img src={img} alt={`Before ${idx + 1}`} className="w-full h-full object-cover grayscale transition-all duration-500 group-hover/img:grayscale-0 group-hover/img:scale-105" />
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                                    <span className="text-white text-[10px] font-medium bg-black/60 px-3 py-1.5 rounded-full backdrop-blur-md border border-white/10">Zoom</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* After Section */}
+                          <div className="space-y-4">
+                            <h4 className="text-xs font-bold tracking-[0.2em] text-accent uppercase flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                              After
+                            </h4>
+                            <div className={`grid gap-4 ${metric.afterImages && metric.afterImages.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                              {metric.afterImages?.map((img, idx) => (
+                                <div 
+                                  key={idx}
+                                  className="relative group/img overflow-hidden rounded-2xl border border-accent/30 cursor-zoom-in aspect-video"
+                                  onClick={() => setSelectedImage(img)}
+                                >
+                                  <img src={img} alt={`After ${idx + 1}`} className="w-full h-full object-cover transition-all duration-500 group-hover/img:scale-105" />
+                                  <div className="absolute inset-0 bg-accent/10 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                                    <span className="text-white text-[10px] font-medium bg-accent/60 px-3 py-1.5 rounded-full backdrop-blur-md border border-white/10">Zoom</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        {metric.description && (
+                          <p className="text-sm text-muted-foreground leading-relaxed italic bg-white/[0.02] p-5 rounded-2xl border border-white/5 max-w-3xl">
+                            "{metric.description}"
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
               {/* Gallery */}
               {project.gallery && project.gallery.length > 0 && (
                 <motion.div
@@ -172,7 +250,7 @@ const ProjectDetail = () => {
                 >
                   <h2 className="text-2xl font-display font-bold mb-6 text-foreground flex items-center gap-3">
                     <span className="w-8 h-px bg-accent" />
-                    Gallery
+                    {project.metrics && project.metrics.length > 0 ? "Website Showcase" : "Gallery"}
                   </h2>
                   
                   <div className="relative group/slider overflow-hidden rounded-2xl border border-white/10 shadow-2xl bg-card/20">
@@ -243,6 +321,48 @@ const ProjectDetail = () => {
               transition={{ delay: 0.3 }}
               className="space-y-8"
             >
+              {/* Project Impact Metrics */}
+              {project.metrics && project.metrics.length > 0 && (
+                <div className="relative group overflow-hidden">
+                  {/* Decorative Background Blur */}
+                  <div className="absolute -right-20 -top-20 w-64 h-64 bg-accent/10 blur-[100px] rounded-full pointer-events-none group-hover:bg-accent/20 transition-all duration-700" />
+                  
+                  <div className="relative bg-card/40 backdrop-blur-xl rounded-2xl border border-accent/20 p-8 shadow-2xl overflow-hidden">
+                    <div className="flex items-center justify-between mb-8">
+                      <h3 className="font-display font-bold text-xs uppercase tracking-[0.3em] text-accent">Project Impact</h3>
+                      <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                        <TrendingUp className="w-4 h-4 text-accent" />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-8">
+                      {project.metrics.map((metric, i) => (
+                        <div key={i} className="flex flex-col gap-4 group/metric relative">
+                          <div className="relative">
+                            <span className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 font-bold block">
+                              {metric.label}
+                            </span>
+                            <span className="text-4xl font-display font-bold text-foreground group-hover/metric:text-accent transition-colors duration-300">
+                              {metric.value}
+                            </span>
+                          </div>
+
+                          {metric.description && (
+                            <p className="text-xs text-muted-foreground leading-relaxed italic border-l-2 border-accent/20 pl-4 py-1">
+                              {metric.description}
+                            </p>
+                          )}
+                          
+                          {i < project.metrics.length - 1 && (
+                            <div className="h-px w-full bg-gradient-to-r from-accent/20 to-transparent mt-2" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Tools */}
               <div className="bg-card/30 backdrop-blur-md rounded-2xl border border-white/10 p-8 shadow-xl">
                 <h3 className="font-display font-bold text-xs uppercase tracking-[0.2em] text-muted-foreground mb-6">Tech Stack</h3>

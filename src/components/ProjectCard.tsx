@@ -155,6 +155,22 @@ const ProjectCard = ({ project, index }: ProjectCardProps) => {
               {project.description}
             </p>
 
+            {/* Metrics Section */}
+            {project.metrics && project.metrics.length > 0 && (
+              <div className="grid grid-cols-2 gap-4 mb-6 border-t border-white/5 pt-6">
+                {project.metrics.slice(0, 2).map((metric, i) => (
+                  <div key={i} className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                      {metric.label}
+                    </span>
+                    <span className="text-lg font-display font-bold text-accent">
+                      {metric.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="flex items-center text-xs font-semibold text-accent/80 group-hover:text-accent transition-colors">
               <span className="mr-2">Explore Project</span>
               <div className="h-px flex-1 bg-accent/20 group-hover:bg-accent/40 transition-colors" />

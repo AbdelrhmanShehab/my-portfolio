@@ -1,10 +1,51 @@
 import { motion } from "framer-motion";
-import { ArrowDown, MapPin, Download, ArrowUpRight } from "lucide-react";
+import { ArrowDown, MapPin, Download, ArrowUpRight, Github, Linkedin, ExternalLink } from "lucide-react";
 import abdelrhmanPhoto from "@/assets/abdelrhman.jpg";
 import { useState, useEffect } from "react";
 import ParticlesCanvas from "./ParticlesCanvas";
 import { useXP } from "./XPSystem";
 import { useNavigate } from "react-router-dom";
+
+// Custom Behance Icon
+const BehanceIcon = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M9 12h2a2 2 0 1 0 0-4H9v4z" />
+    <path d="M9 16h3a2 2 0 1 0 0-4H9v4z" />
+    <path d="M17 12h3" />
+    <path d="M17 15h3" />
+    <path d="M17 9h3" />
+    <rect x="2" y="3" width="20" height="18" rx="4" />
+  </svg>
+);
+
+const socialLinks = [
+  {
+    name: "GitHub",
+    icon: <Github className="w-5 h-5" />,
+    url: "https://github.com/AbdelrhmanShehab",
+    color: "hover:text-[#2dba4e]"
+  },
+  {
+    name: "LinkedIn",
+    icon: <Linkedin className="w-5 h-5" />,
+    url: "www.linkedin.com/in/abdelrhman-shihab-372bb2228",
+    color: "hover:text-[#0077b5]"
+  },
+  {
+    name: "Behance",
+    icon: <BehanceIcon className="w-5 h-5" />,
+    url: "https://www.behance.net/abdelrhmanhossam",
+    color: "hover:text-[#053eff]"
+  }
+];
 
 const skills = ["React.js", "Next.js", "TypeScript", "UX Design", "SQL"];
 
@@ -26,7 +67,9 @@ const HeroSection = () => {
       try {
         const { url } = JSON.parse(saved);
         if (url) setCvUrl(url);
-      } catch { }
+      } catch (error) {
+        console.error("Failed to parse CV metadata", error);
+      }
     }
   }, []);
 
@@ -119,7 +162,7 @@ const HeroSection = () => {
             </motion.p>
 
             {/* Buttons */}
-            <div className="flex flex-wrap gap-3 mb-12">
+            <div className="flex flex-wrap gap-3 mb-8">
               {[
                 {
                   label: "View My Work",
@@ -153,7 +196,26 @@ const HeroSection = () => {
                     }`}
                 >
                   {btn.label.includes("Download") ? "Go to Resume" : btn.label}
+                </motion.a>
+              ))}
+            </div>
 
+            {/* Social Links */}
+            <div className="flex items-center gap-6 mb-12 ml-2">
+              {socialLinks.map((link, i) => (
+                <motion.a
+                  key={link.name}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1.5 + (i * 0.1) }}
+                  whileHover={{ y: -3, scale: 1.1 }}
+                  className={`text-muted-foreground transition-colors duration-300 flex items-center gap-2 text-sm ${link.color}`}
+                >
+                  {link.icon}
+                  <span className="hidden sm:inline font-medium">{link.name}</span>
                 </motion.a>
               ))}
             </div>
@@ -222,19 +284,6 @@ const HeroSection = () => {
           </motion.div>
         </div>
 
-        {/* Scroll */}
-        <motion.div
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-          className="flex justify-center mt-16"
-        >
-          <a
-            href="#projects"
-            className="w-10 h-10 rounded-full border border-border/60 flex items-center justify-center hover:text-accent hover:border-accent"
-          >
-            <ArrowDown className="w-4 h-4" />
-          </a>
-        </motion.div>
       </div>
     </section>
   );
