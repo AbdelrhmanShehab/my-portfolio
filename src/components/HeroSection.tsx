@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import ParticlesCanvas from "./ParticlesCanvas";
 import { useXP } from "./XPSystem";
 import { useNavigate } from "react-router-dom";
+import { trackEvent } from "@/lib/analytics";
 
 // Custom Behance Icon
 const BehanceIcon = ({ className }: { className?: string }) => (
@@ -183,8 +184,10 @@ const HeroSection = () => {
                     if (btn.label.includes("Download")) {
                       e.preventDefault();
                       gainXP(15, e.clientX, e.clientY);
+                      trackEvent("button_click", { name: "go_to_resume" });
                       navigate("/resume");
                     } else {
+                      trackEvent("button_click", { name: "view_my_work", destination: "#projects" });
                       gainXP(5, e.clientX, e.clientY);
                     }
                   }}
@@ -200,22 +203,53 @@ const HeroSection = () => {
               ))}
             </div>
 
-            {/* Social Links */}
-            <div className="flex items-center gap-6 mb-12 ml-2">
+            {/* Social Links - Catchy Floating Badge Buttons */}
+            <div className="flex flex-wrap items-center gap-4 mb-12 ml-2">
               {socialLinks.map((link, i) => (
                 <motion.a
                   key={link.name}
-                  href={link.url}
+                  href={link.url.startsWith("http") ? link.url : `https://${link.url}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 1.5 + (i * 0.1) }}
-                  whileHover={{ y: -3, scale: 1.1 }}
-                  className={`text-muted-foreground transition-colors duration-300 flex items-center gap-2 text-sm ${link.color}`}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.5 + (i * 0.1), type: "spring", stiffness: 100 }}
+                  onClick={() => {
+                    trackEvent("link_click", { platform: link.name, url: link.url });
+                  }}
+                  whileHover={{
+                    y: -5,
+                    scale: 1.05,
+                    boxShadow: link.name === "GitHub"
+                      ? "0 10px 25px -5px rgba(45, 186, 78, 0.4), 0 0 15px rgba(45, 186, 78, 0.2)"
+                      : link.name === "LinkedIn"
+                        ? "0 10px 25px -5px rgba(0, 119, 181, 0.4), 0 0 15px rgba(0, 119, 181, 0.2)"
+                        : "0 10px 25px -5px rgba(5, 62, 255, 0.4), 0 0 15px rgba(5, 62, 255, 0.2)"
+                  }}
+                  whileTap={{ scale: 0.95 }}
+                  className="relative group overflow-hidden flex items-center gap-3 px-5 py-2.5 rounded-full border border-white/10 bg-white/[0.02] backdrop-blur-md transition-all duration-300 cursor-pointer"
                 >
-                  {link.icon}
-                  <span className="hidden sm:inline font-medium">{link.name}</span>
+                  {/* Branding Color Background Slide */}
+                  <span className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-300 bg-gradient-to-r ${link.name === "GitHub" ? "from-[#2dba4e] to-emerald-400" :
+                      link.name === "LinkedIn" ? "from-[#0077b5] to-blue-400" :
+                        "from-[#053eff] to-indigo-500"
+                    }`} />
+
+                  {/* Icon */}
+                  <span className={`transition-all duration-300 ${link.name === "GitHub" ? "group-hover:text-[#2dba4e] group-hover:scale-110" :
+                      link.name === "LinkedIn" ? "group-hover:text-[#0077b5] group-hover:scale-110" :
+                        "group-hover:text-[#053eff] group-hover:scale-110"
+                    } text-muted-foreground`}>
+                    {link.icon}
+                  </span>
+
+                  {/* Name Label */}
+                  <span className="font-mono text-xs tracking-wider font-semibold text-muted-foreground group-hover:text-foreground transition-colors duration-300">
+                    {link.name.toUpperCase()}
+                  </span>
+
+                  {/* Tiny Arrow */}
+                  <ArrowUpRight className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300 text-muted-foreground group-hover:text-accent" />
                 </motion.a>
               ))}
             </div>

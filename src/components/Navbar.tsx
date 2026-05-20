@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
@@ -19,9 +20,9 @@ const Navbar = () => {
         <div className="hidden md:flex items-center gap-2">
           {!isResume && (
             <>
-              <a href="/#projects" className="text-sm text-muted-foreground hover:text-foreground transition-colors px-4 py-2">Work</a>
-              <a href="/#about" className="text-sm text-muted-foreground hover:text-foreground transition-colors px-4 py-2">About</a>
-              <a href="/#contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors px-4 py-2">Contact</a>
+              <a href="/#projects" onClick={() => trackEvent("nav_click", { target: "work" })} className="text-sm text-muted-foreground hover:text-foreground transition-colors px-4 py-2">Work</a>
+              <a href="/#about" onClick={() => trackEvent("nav_click", { target: "about" })} className="text-sm text-muted-foreground hover:text-foreground transition-colors px-4 py-2">About</a>
+              <a href="/#contact" onClick={() => trackEvent("nav_click", { target: "contact" })} className="text-sm text-muted-foreground hover:text-foreground transition-colors px-4 py-2">Contact</a>
             </>
           )}
           <Link

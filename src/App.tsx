@@ -8,6 +8,7 @@ import ProjectDetail from "./pages/ProjectDetail";
 import AdminDashboard from "./pages/AdminDashboard";
 import Resume from "./pages/Resume";
 import NotFound from "./pages/NotFound";
+import AnalyticsDashboard from "./pages/AnalyticsDashboard";
 import { XPProvider } from "./components/XPSystem";
 import InteractiveGlow from "./components/InteractiveGlow";
 
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/project/:id" element={<ProjectDetail />} />
             <Route path="/dashboard-secret" element={<AdminDashboard />} />
+            <Route path="/analytics-secret" element={<AnalyticsDashboard />} />
             <Route path="/resume" element={<Resume />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

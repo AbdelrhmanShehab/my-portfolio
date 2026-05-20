@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Mail, Phone } from "lucide-react";
 import { useRef, useState, useEffect, useCallback } from "react";
 import Buddy from "./Buddy";
+import { trackEvent } from "@/lib/analytics";
 
 // Removed manual Eye implementation as it's replaced by Buddy
 
@@ -60,6 +61,7 @@ const ContactSection = () => {
               <div className="absolute -inset-3 bg-accent/25 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <a
                 href="mailto:abdlrhman.shihab@gmail.com"
+                onClick={() => trackEvent("contact_click", { method: "email", value: "abdlrhman.shihab@gmail.com" })}
                 className="relative inline-flex items-center gap-3 px-10 py-4 rounded-full bg-foreground text-background font-semibold text-base shadow-lg group-hover:scale-105 transition-transform duration-300"
               >
                 <Mail className="w-5 h-5" />
@@ -69,6 +71,7 @@ const ContactSection = () => {
 
             <a
               href="tel:+201287419214"
+              onClick={() => trackEvent("contact_click", { method: "phone", value: "+201287419214" })}
               className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-accent transition-colors duration-300"
             >
               <Phone className="w-4 h-4" />

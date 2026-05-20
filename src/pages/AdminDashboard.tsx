@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 const AdminDashboard = () => {
   const [galleryFiles, setGalleryFiles] = useState<string[]>([]);
+  const [galleryTitles, setGalleryTitles] = useState<string[]>([]);
+  const [galleryDescriptions, setGalleryDescriptions] = useState<string[]>([]);
   const [projectList, setProjectList] = useState<Project[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -40,11 +42,12 @@ const AdminDashboard = () => {
     problem: "",
     solution: "",
     tools: "",
-    tags: "",
+    features: "",
     githubUrl: "",
     liveUrl: "",
     behanceUrl: "",
-    thumbnail: ""
+    thumbnail: "",
+    featured: false
   });
 
   const [metrics, setMetrics] = useState<{ 
@@ -58,10 +61,10 @@ const AdminDashboard = () => {
   }[]>([]);
   const handleGalleryUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const remainingSlots = 6 - galleryFiles.length;
+    const remainingSlots = 8 - galleryFiles.length;
 
     if (files.length > remainingSlots) {
-      toast.error(`You can only add ${remainingSlots} more image(s) to the gallery (Max 6)`);
+      toast.error(`You can only add ${remainingSlots} more image(s) to the gallery (Max 8)`);
       return;
     }
 
@@ -72,6 +75,8 @@ const AdminDashboard = () => {
       }
 
       setGalleryFileObjects(prev => [...prev, file]);
+      setGalleryTitles(prev => [...prev, ""]);
+      setGalleryDescriptions(prev => [...prev, ""]);
       const reader = new FileReader();
       reader.onloadend = () => {
         setGalleryFiles((prev) => [...prev, reader.result as string]);
@@ -80,8 +85,9 @@ const AdminDashboard = () => {
     });
   };
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target as any;
+    const val = type === 'checkbox' ? (e.target as any).checked : value;
+    setFormData(prev => ({ ...prev, [name]: val }));
   };
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -140,11 +146,22 @@ const AdminDashboard = () => {
         thumbnailUrl = await uploadImage(thumbnailFile);
       }
 
-        const galleryUrls = await Promise.all(
-          galleryFileObjects.map(async (file) => {
-            return await uploadImage(file);
-          })
-        );
+        // Build gallery items with correct URLs and titles/descriptions
+        let fileIdx = 0;
+        const finalGalleryItems: {url: string; title: string; description: string}[] = [];
+        for (let i = 0; i < galleryFiles.length; i++) {
+          const preview = galleryFiles[i];
+          let url = preview;
+          if (!preview.startsWith("http")) {
+            const file = galleryFileObjects[fileIdx++];
+            if (file) url = await uploadImage(file);
+          }
+          finalGalleryItems.push({
+            url,
+            title: galleryTitles[i] || "",
+            description: galleryDescriptions[i] || ""
+          });
+        }
 
         // Upload metric images
         const updatedMetrics = await Promise.all(
@@ -152,7 +169,6 @@ const AdminDashboard = () => {
             const beforeImages = [...metric.beforeImages];
             const afterImages = [...metric.afterImages];
 
-            // Handle multiple files for Before images
             for (let i = 0; i < metric.beforeFiles.length; i++) {
               const file = metric.beforeFiles[i];
               if (file) {
@@ -162,7 +178,6 @@ const AdminDashboard = () => {
               }
             }
 
-            // Handle multiple files for After images
             for (let i = 0; i < metric.afterFiles.length; i++) {
               const file = metric.afterFiles[i];
               if (file) {
@@ -181,9 +196,6 @@ const AdminDashboard = () => {
           })
         );
 
-        // If we are editing and didn't add new gallery files, keep old ones
-        const finalGallery = galleryUrls.length > 0 ? galleryUrls : (editingId ? galleryFiles : (thumbnailUrl ? [thumbnailUrl] : []));
-
         const newProject: Project = {
           id: editingId || formData.title.toLowerCase().replace(/\s+/g, "-"),
           title: formData.title,
@@ -191,13 +203,15 @@ const AdminDashboard = () => {
           problem: formData.problem,
           solution: formData.solution,
           tools: formData.tools.split(",").map(t => t.trim()).filter(t => t),
-          tags: formData.tags.split(",").map(t => t.trim()).filter(t => t),
+          tags: formData.features.split(",").map(t => t.trim()).filter(t => t),
+          features: formData.features.split(",").map(t => t.trim()).filter(t => t),
           thumbnail: thumbnailUrl,
-          gallery: finalGallery,
+          gallery: finalGalleryItems.map(item => item.url),
+          galleryItems: finalGalleryItems,
           githubUrl: formData.githubUrl,
           liveUrl: formData.liveUrl,
           behanceUrl: formData.behanceUrl,
-          featured: false,
+          featured: formData.featured,
           metrics: updatedMetrics
         };
 
@@ -208,11 +222,12 @@ const AdminDashboard = () => {
         problem: "",
         solution: "",
         tools: "",
-        tags: "",
+        features: "",
         githubUrl: "",
         liveUrl: "",
         behanceUrl: "",
-        thumbnail: ""
+        thumbnail: "",
+        featured: false
       });
       setMetrics([]);
       toast.success(editingId ? "Project updated!" : "Project added successfully!", {
@@ -223,6 +238,8 @@ const AdminDashboard = () => {
       });
       setGalleryFiles([]);
       setGalleryFileObjects([]);
+      setGalleryTitles([]);
+      setGalleryDescriptions([]);
       setThumbnailFile(null);
       setEditingId(null);
       setShowForm(false);
@@ -245,11 +262,12 @@ const AdminDashboard = () => {
       problem: project.problem,
       solution: project.solution,
       tools: project.tools.join(", "),
-      tags: project.tags.join(", "),
+      features: (project.features || project.tags || []).join(", "),
       githubUrl: project.githubUrl || "",
       liveUrl: project.liveUrl || "",
       behanceUrl: project.behanceUrl || "",
-      thumbnail: project.thumbnail
+      thumbnail: project.thumbnail,
+      featured: project.featured || false
     });
     setMetrics((project.metrics || []).map(m => ({
       label: m.label,
@@ -260,7 +278,12 @@ const AdminDashboard = () => {
       beforeFiles: [null, null],
       afterFiles: [null, null]
     })));
-    setGalleryFiles(project.gallery || []);
+    const existingItems = (project.galleryItems && project.galleryItems.length > 0)
+      ? project.galleryItems
+      : (project.gallery || []).map(url => ({ url, title: "", description: "" }));
+    setGalleryFiles(existingItems.map(item => item.url));
+    setGalleryTitles(existingItems.map(item => item.title || ""));
+    setGalleryDescriptions(existingItems.map(item => item.description || ""));
     setEditingId(project.id);
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -644,13 +667,14 @@ export const projects: Project[] = ${JSON.stringify(projectList, null, 2)};
                 { label: "Problem", name: "problem" },
                 { label: "Solution", name: "solution" },
                 { label: "Tools (comma-separated)", name: "tools" },
+                { label: "Features (comma-separated)", name: "features" },
                 { label: "GitHub URL", name: "githubUrl" },
                 { label: "Live URL", name: "liveUrl" },
                 { label: "Behance URL", name: "behanceUrl" }
               ].map((field) => (
-                <div key={field.name} className={["description", "problem", "solution"].includes(field.name) ? "sm:col-span-2" : ""}>
+                <div key={field.name} className={["description", "problem", "solution", "features"].includes(field.name) ? "sm:col-span-2" : ""}>
                   <label className="text-sm font-medium text-foreground block mb-1.5">{field.label}</label>
-                  {["description", "problem", "solution"].includes(field.name) ? (
+                  {["description", "problem", "solution", "features"].includes(field.name) ? (
                     <textarea
                       name={field.name}
                       value={(formData as any)[field.name]}
@@ -671,6 +695,26 @@ export const projects: Project[] = ${JSON.stringify(projectList, null, 2)};
                   )}
                 </div>
               ))}
+
+              <div className="sm:col-span-2 flex items-center gap-3 p-4 rounded-xl border border-white/5 bg-white/[0.02]">
+                <input
+                  type="checkbox"
+                  id="featured"
+                  name="featured"
+                  checked={formData.featured}
+                  onChange={handleInputChange}
+                  className="w-5 h-5 rounded border-border text-accent focus:ring-accent bg-secondary cursor-pointer"
+                />
+                <div>
+                  <label htmlFor="featured" className="text-sm font-semibold text-foreground cursor-pointer block select-none">
+                    Featured Project
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Highlight this project at the top of your portfolio.
+                  </p>
+                </div>
+              </div>
+
               <div className="sm:col-span-2">
                 <label className="text-sm font-medium text-foreground block mb-1.5">Thumbnail</label>
                 <input
@@ -706,35 +750,60 @@ export const projects: Project[] = ${JSON.stringify(projectList, null, 2)};
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-sm font-medium text-foreground block">Gallery Images (Slider)</label>
                   <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                    {galleryFiles.length} / 6 Images
+                    {galleryFiles.length} / 8 Images
                   </span>
                 </div>
                 <input
                   type="file"
                   multiple
                   onChange={handleGalleryUpload}
-                  disabled={galleryFiles.length >= 6}
+                  disabled={galleryFiles.length >= 8}
                   accept="image/*"
                   className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 mb-4 disabled:opacity-50"
                 />
                 <p className="text-[10px] text-muted-foreground mb-4">
-                  * Max 6 images. Keep each under 2MB to avoid storage limits.
+                  * Max 8 images. Each slide can have a title and caption. Keep each under 2MB.
                 </p>
                 
                 {galleryFiles.length > 0 && (
-                  <div className="flex flex-wrap gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     {galleryFiles.map((file, idx) => (
-                      <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
-                        <img src={file} alt="" className="w-full h-full object-cover" />
-                        <button
-                          onClick={() => {
-                            setGalleryFiles(prev => prev.filter((_, i) => i !== idx));
-                            setGalleryFileObjects(prev => prev.filter((_, i) => i !== idx));
+                      <div key={idx} className="space-y-2">
+                        <div className="relative rounded-lg overflow-hidden border border-border group aspect-video">
+                          <img src={file} alt="" className="w-full h-full object-cover" />
+                          <button
+                            onClick={() => {
+                              setGalleryFiles(prev => prev.filter((_, i) => i !== idx));
+                              setGalleryFileObjects(prev => prev.filter((_, i) => i !== idx));
+                              setGalleryTitles(prev => prev.filter((_, i) => i !== idx));
+                              setGalleryDescriptions(prev => prev.filter((_, i) => i !== idx));
+                            }}
+                            className="absolute top-1 right-1 p-1 bg-destructive/80 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3 text-white" />
+                          </button>
+                          <div className="absolute bottom-1 left-1 text-[8px] font-bold text-white bg-black/50 px-1.5 py-0.5 rounded">
+                            {idx + 1}
+                          </div>
+                        </div>
+                        <input
+                          type="text"
+                          value={galleryTitles[idx] || ""}
+                          onChange={(e) => {
+                            const t = [...galleryTitles]; t[idx] = e.target.value; setGalleryTitles(t);
                           }}
-                          className="absolute inset-0 bg-destructive/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-4 h-4 text-white" />
-                        </button>
+                          placeholder="Slide title..."
+                          className="w-full px-2 py-1 text-xs bg-secondary border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary/50"
+                        />
+                        <input
+                          type="text"
+                          value={galleryDescriptions[idx] || ""}
+                          onChange={(e) => {
+                            const d = [...galleryDescriptions]; d[idx] = e.target.value; setGalleryDescriptions(d);
+                          }}
+                          placeholder="Caption (optional)"
+                          className="w-full px-2 py-1 text-xs bg-secondary border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary/50"
+                        />
                       </div>
                     ))}
                   </div>

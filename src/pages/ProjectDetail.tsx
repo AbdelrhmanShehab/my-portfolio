@@ -4,6 +4,7 @@ import { ArrowLeft, ExternalLink, Github, Palette, ChevronLeft, ChevronRight, Tr
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { getProject } from "@/data/projects";
+import { trackEvent } from "@/lib/analytics";
 
 import { useState, useEffect } from "react";
 import type { Project } from "@/data/projects";
@@ -42,6 +43,9 @@ const ProjectDetail = () => {
       const data = await getProject(id || "");
       setProject(data);
       setLoading(false);
+      if (data) {
+        trackEvent("page_view", { page: "project_detail", project_id: data.id, project_title: data.title });
+      }
     };
     fetchProject();
   }, [id]);
@@ -163,6 +167,37 @@ const ProjectDetail = () => {
                 <p className="text-muted-foreground leading-relaxed text-lg">{project.solution}</p>
               </motion.div>
 
+              {/* Features List */}
+              {project.features && project.features.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                >
+                  <h2 className="text-2xl font-display font-bold mb-6 text-foreground flex items-center gap-3">
+                    <span className="w-8 h-px bg-accent" />
+                    Key Features
+                  </h2>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    {project.features.map((feature, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, x: -10 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: i * 0.05 }}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-accent/5 border border-accent/10 hover:border-accent/30 hover:bg-accent/10 transition-all duration-300"
+                      >
+                        <div className="w-5 h-5 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center flex-shrink-0">
+                          <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+                        </div>
+                        <span className="text-sm text-foreground/90">{feature}</span>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
               {/* Before & After Transformation */}
               {project.metrics && project.metrics.some(m => (m.beforeImages && m.beforeImages.length > 0) || (m.afterImages && m.afterImages.length > 0)) && (
                 <motion.div
@@ -262,15 +297,31 @@ const ProjectDetail = () => {
                       animate={{ x: `-${currentSlide * 100}%` }}
                       transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     >
-                      {project.gallery.map((img, i) => (
-                        <div key={i} className="min-w-full px-4">
+                      {(project.galleryItems && project.galleryItems.length > 0 ? project.galleryItems : (project.gallery || []).map(url => ({ url, title: "", description: "" }))).map((item, i) => (
+                        <div key={i} className="min-w-full px-4 relative">
                           <img 
-                            src={img} 
-                            alt={`${project.title} screenshot ${i + 1}`} 
+                            src={item.url} 
+                            alt={item.title || `${project.title} screenshot ${i + 1}`} 
                             loading="lazy" 
-                            onClick={() => setSelectedImage(img)}
+                            onClick={() => setSelectedImage(item.url)}
                             className="w-full h-auto object-cover rounded-xl aspect-[16/9] cursor-zoom-in" 
                           />
+                          {(item.title || item.description) && (
+                            <div className="mt-6 p-6 rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-md relative overflow-hidden group-hover/slider:border-white/10 transition-colors">
+                              <div className="absolute -left-10 -top-10 w-24 h-24 rounded-full bg-accent/10 blur-2xl pointer-events-none" />
+                              {item.title && (
+                                <h3 className="text-xl sm:text-2xl font-display font-bold tracking-tight text-foreground flex items-center gap-2 mb-2 relative z-10">
+                                  <span className="w-2 h-4 bg-accent rounded-full animate-pulse" />
+                                  {item.title}
+                                </h3>
+                              )}
+                              {item.description && (
+                                <p className="text-sm sm:text-base text-muted-foreground/90 leading-relaxed pl-4 border-l-2 border-accent/20 relative z-10">
+                                  {item.description}
+                                </p>
+                              )}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </motion.div>

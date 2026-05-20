@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from "react";
 import type { Project } from "@/data/projects";
 import { ArrowUpRight } from "lucide-react";
 import { useXP } from "./XPSystem";
+import { trackEvent } from "@/lib/analytics";
 
 interface ProjectCardProps {
   project: Project;
@@ -83,11 +84,19 @@ const ProjectCard = ({ project, index }: ProjectCardProps) => {
 
         <Link
           to={`/project/${project.id}`}
-          onClick={(e) => gainXP(20, e.clientX, e.clientY)}
+          onClick={(e) => {
+            gainXP(20, e.clientX, e.clientY);
+            trackEvent("project_card_click", { project_id: project.id, project_title: project.title });
+          }}
           className="relative block h-full bg-card/30 backdrop-blur-md border border-white/10 rounded-[2rem] p-6 overflow-hidden transition-colors duration-500 group-hover:border-accent/40 group-hover:bg-card/50"
         >
           {/* 🎞️ IMAGE SLIDER SECTION */}
           <div className="relative aspect-[10/9] rounded-2xl overflow-hidden mb-6 bg-muted">
+            {project.featured && (
+              <div className="absolute top-4 left-4 z-20 flex items-center gap-1 bg-accent/90 backdrop-blur-md text-accent-foreground px-3 py-1 rounded-full text-[9px] uppercase tracking-wider font-extrabold shadow-glow-sm">
+                <span>✨ FEATURED</span>
+              </div>
+            )}
             <AnimatePresence mode="wait">
               <motion.img
                 key={isHovered ? activeIndex : "thumbnail"}
