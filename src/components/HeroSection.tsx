@@ -52,7 +52,7 @@ const skills = ["React.js", "Next.js", "TypeScript", "UX Design", "SQL"];
 
 const stats = [
   { value: "5+", label: "Full systems shipped" },
-  { value: "1+", label: "Years experience" },
+  { value: "3+", label: "Years experience" },
   { value: "~30%", label: "Avg. perf. gains" },
 ];
 
