@@ -1,0 +1,117 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Public+Sans:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 230 25% 8%;
+    --foreground: 230 20% 98%;
+
+    --card: 230 25% 10%;
+    --card-foreground: 230 20% 98%;
+
+    --popover: 230 25% 10%;
+    --popover-foreground: 230 20% 98%;
+
+    --primary: 230 20% 98%;
+    --primary-foreground: 230 25% 8%;
+
+    --secondary: 230 20% 14%;
+    --secondary-foreground: 230 20% 90%;
+
+    --muted: 230 20% 12%;
+    --muted-foreground: 230 10% 65%;
+
+    --accent: 18 70% 62%;
+    --accent-foreground: 230 25% 8%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 230 20% 18%;
+    --input: 230 20% 18%;
+    --ring: 18 70% 62%;
+
+    --radius: 1rem;
+
+    --sidebar-background: 230 25% 10%;
+    --sidebar-foreground: 230 20% 98%;
+    --sidebar-primary: 18 70% 62%;
+    --sidebar-primary-foreground: 230 25% 8%;
+    --sidebar-accent: 230 20% 14%;
+    --sidebar-accent-foreground: 230 20% 90%;
+    --sidebar-border: 230 20% 18%;
+    --sidebar-ring: 18 70% 62%;
+
+    /* Custom tokens */
+    --gradient-glow: linear-gradient(135deg, hsl(18 70% 62% / 0.4), hsl(18 70% 50% / 0.3));
+    --gradient-card: linear-gradient(145deg, hsl(230 25% 12%), hsl(230 25% 9%));
+    --shadow-glow: 0 20px 60px -15px hsl(18 70% 62% / 0.35);
+    --shadow-soft: 0 10px 40px -10px hsl(0 0% 0% / 0.6);
+    --transition-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+    cursor: hidden;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display;
+  }
+}
+
+@layer utilities {
+  .bg-gradient-glow {
+    background: var(--gradient-glow);
+  }
+
+  .bg-gradient-card {
+    background: var(--gradient-card);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .shadow-glow-sm {
+    box-shadow: 0 5px 15px -5px hsl(18 70% 62% / 0.5);
+  }
+
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+
+  .transition-smooth {
+    transition: all 0.5s var(--transition-smooth);
+  }
+
+  .magnetic-hover {
+    transition: transform 0.4s var(--transition-smooth);
+  }
+
+  .magnetic-hover:hover {
+    transform: translateY(-4px) scale(1.02);
+  }
+
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+}
